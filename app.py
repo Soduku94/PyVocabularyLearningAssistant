@@ -5,9 +5,9 @@ from flask_dance.contrib.google import make_google_blueprint, google
 from flask_sqlalchemy import SQLAlchemy  # <<< THÊM DÒNG NÀY
 from sqlalchemy import func
 from sqlalchemy.sql import case
-from dotenv import load_dotenv # Thêm dòng này
-load_dotenv()
+from dotenv import load_dotenv  # Thêm dòng này
 
+load_dotenv()
 
 from flask_migrate import Migrate
 from datetime import datetime  # <<< THÊM DÒNG NÀY
@@ -20,7 +20,8 @@ app = Flask(__name__)
 
 app.config["GOOGLE_OAUTH_CLIENT_ID"] = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 app.config["GOOGLE_OAUTH_CLIENT_SECRET"] = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "a_default_fallback_secret_key_if_not_set_for_dev") # Nên có fallback cho dev
+app.secret_key = os.environ.get("FLASK_SECRET_KEY",
+                                "a_default_fallback_secret_key_if_not_set_for_dev")  # Nên có fallback cho dev
 
 # --- Cấu hình SQLAlchemy ---
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vocabulary_app.db'  # <<< THÊM: Đường dẫn tới file database SQLite
@@ -66,17 +67,17 @@ def get_current_user_info():
             return {
                 "name": user_from_db.name,
                 "email": user_from_db.email,
+                "display_name": user_from_db.display_name,
                 "picture": user_from_db.picture_url,
                 "is_admin": user_from_db.is_admin  # <<< ĐẢM BẢO CÓ DÒNG NÀY
             }
     # Xử lý trường hợp đăng nhập bằng Google mà chưa có db_user_id trong session (lần đầu)
-    if google.authorized:  # google object từ Flask-Dance
-        user_info_google = session.get("user_info")  # Thông tin tạm từ Google session
+    if google.authorized:
+        user_info_google = session.get("user_info")
         if user_info_google:
-            # Trong trường hợp này, chúng ta chưa có thông tin is_admin từ Google trực tiếp
-            # Nếu user đã có trong DB (được tạo/cập nhật trong route home), is_admin sẽ có khi get_current_user_info được gọi lại với db_user_id
-            # Tạm thời, nếu chỉ có google session, is_admin có thể coi là False cho lần render đầu tiên này
-            user_info_google['is_admin'] = False  # Hoặc logic phức tạp hơn để query DB nếu cần ngay
+            user_info_google['is_admin'] = False  # Mặc định
+            user_info_google['display_name'] = user_info_google.get('name')  # Tạm đặt bằng name
+            user_info_google['google_id'] = user_info_google.get('id') or user_info_google.get('sub')
             return user_info_google
     return None
 
@@ -87,6 +88,8 @@ app.register_blueprint(google_bp, url_prefix="/login")
 # --- Các Route của ứng dụng ---
 @app.route('/')
 def home():
+    # if session.get("db_user_id"):
+    #     return redirect(url_for('dashboard_page'))
     display_user_info = get_current_user_info()  # Lấy thông tin user hiện tại (nếu có)
 
     # Xử lý sau khi Google xác thực (có thể đã có user_info trong session từ Google)
@@ -174,7 +177,9 @@ def home():
                         return redirect(url_for('google_complete_setup_page'))
                     else:  # User đã có google_id và password_hash -> đăng nhập thành công
                         session['db_user_id'] = user.id
-                        display_user_info = get_current_user_info()  # Cập nhật display_user_info
+                        display_user_info = get_current_user_info() # Cập nhật lại
+                        flash('Đăng nhập bằng Google thành công!', 'success')  # Có thể thêm flash
+                        return redirect(url_for('home'))
             else:  # Không lấy được google_id hoặc email từ Google
                 flash("Không thể xác thực với Google, thiếu thông tin định danh.", "danger")
                 return redirect(url_for('logout'))
@@ -182,86 +187,88 @@ def home():
     # Hiển thị trang chủ
     return render_template('index.html', user_info=display_user_info)
 
-
 @app.route('/auth/google/complete-setup', methods=['GET', 'POST'])
 def google_complete_setup_page():
-    # Kiểm tra xem có thông tin người dùng Google đang chờ xử lý trong session không
     pending_google_user = session.get('google_auth_pending_setup')
     if not pending_google_user:
         flash("Không có thông tin để hoàn tất đăng ký Google, hoặc phiên đã hết hạn.", "warning")
         return redirect(url_for('home'))
 
-    # Lấy thông tin admin hiện tại (cho base.html, nếu trang này kế thừa base.html)
-    # Nếu trang này là một trang riêng biệt không có sidebar/header như base.html, bạn có thể không cần user_info này.
-    # Tuy nhiên, để nhất quán và nếu có flash message, kế thừa base.html vẫn tốt.
     current_display_user_info = get_current_user_info()
 
     if request.method == 'POST':
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
-        agree_terms = request.form.get('agree_terms') == 'on'  # Checkbox trả về 'on' nếu được chọn
+        agree_terms = request.form.get('agree_terms') == 'on'
 
+        error_occurred = False
         if not password or not confirm_password:
             flash("Vui lòng nhập mật khẩu và xác nhận mật khẩu.", "danger")
+            error_occurred = True
         elif len(password) < 6:
             flash("Mật khẩu phải có ít nhất 6 ký tự.", "danger")
+            error_occurred = True
         elif password != confirm_password:
             flash("Mật khẩu và xác nhận mật khẩu không khớp.", "danger")
+            error_occurred = True
         elif not agree_terms:
             flash("Bạn phải đồng ý với các điều khoản và điều kiện để tiếp tục.", "danger")
-        else:
-            # Tất cả thông tin hợp lệ, tiến hành tạo/cập nhật user
-            google_id = pending_google_user['google_id']
-            email = pending_google_user['email']
-            name = pending_google_user.get('name')
-            picture = pending_google_user.get('picture')
+            error_occurred = True
 
-            user = User.query.filter_by(google_id=google_id).first()
-            if not user:  # Nếu chưa có user với google_id này, thử lại bằng email
-                user = User.query.filter_by(email=email).first()
+        if error_occurred:
+            return redirect(url_for('google_complete_setup_page'))  # PRG: Redirect về GET để hiển thị lỗi
 
-            try:
-                if user:  # User đã tồn tại (ví dụ qua email, giờ liên kết google_id và set password)
-                    user.google_id = google_id  # Đảm bảo google_id được gán
-                    user.set_password(password)
-                    user.name = user.name or name  # Cập nhật name nếu user.name chưa có
-                    user.picture_url = user.picture_url or picture  # Cập nhật picture nếu user.picture_url chưa có
-                else:  # User hoàn toàn mới
-                    user = User(
-                        google_id=google_id,
-                        email=email,
-                        name=name,
-                        picture_url=picture,
-                        is_admin=False,  # Mặc định
-                        is_blocked=False  # Mặc định
-                    )
-                    user.set_password(password)
-                    db.session.add(user)
+        # Nếu không có lỗi validation, tiếp tục xử lý
+        google_id = pending_google_user['google_id']
+        email = pending_google_user['email']
+        name = pending_google_user.get('name')
+        picture = pending_google_user.get('picture')
 
-                db.session.commit()
+        user = User.query.filter_by(google_id=google_id).first()
+        if not user:
+            user = User.query.filter_by(email=email).first()
 
-                # Đăng nhập người dùng
-                session.pop('google_auth_pending_setup', None)  # Xóa thông tin tạm khỏi session
-                session['db_user_id'] = user.id
-                session['user_info'] = {  # Tạo user_info cho session từ DB
-                    'name': user.name,
-                    'email': user.email,
-                    'picture': user.picture_url,
-                    'is_admin': user.is_admin
-                }
-                flash('Hoàn tất đăng ký và đăng nhập thành công!', 'success')
-                return redirect(url_for('home'))
-            except Exception as e:
-                db.session.rollback()
-                flash(f"Có lỗi xảy ra khi lưu thông tin: {str(e)}", "danger")
-                print(f"Lỗi khi hoàn tất đăng ký Google cho {email}: {e}")
+        try:
+            if user:
+                user.google_id = google_id
+                user.set_password(password)
+                # Quyết định cách cập nhật name và picture:
+                # Cách 1: Ưu tiên thông tin từ Google nếu user chưa có
+                user.name = user.name or name
+                user.picture_url = user.picture_url or picture
+                # Cách 2: Luôn cập nhật từ Google (nếu Google cung cấp)
+                # if name: user.name = name
+                # if picture: user.picture_url = picture
+            else:
+                user = User(
+                    google_id=google_id, email=email, name=name, picture_url=picture,
+                    is_admin=False, is_blocked=False
+                )
+                user.set_password(password)
+                db.session.add(user)
 
-    # Cho GET request, hoặc nếu POST có lỗi thì render lại form
+            db.session.commit()
+
+            session.pop('google_auth_pending_setup', None)
+            session['db_user_id'] = user.id
+            session['user_info'] = {
+                'name': user.name, 'display_name': user.display_name,  # Thêm display_name nếu có
+                'email': user.email, 'picture': user.picture_url,
+                'is_admin': user.is_admin
+            }
+            flash('Hoàn tất đăng ký và đăng nhập thành công!', 'success')
+            return redirect(url_for('home'))  # Đã đổi thành home theo yêu cầu trước
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Có lỗi xảy ra khi lưu thông tin: {str(e)}", "danger")
+            print(f"Lỗi khi hoàn tất đăng ký Google cho {email}: {e}")
+            return redirect(url_for('google_complete_setup_page'))  # PRG: Redirect về GET nếu có lỗi DB
+
+    # Cho GET request
     return render_template('auth/google_complete_setup.html',
-                           user_info=current_display_user_info,  # Cho base.html
+                           user_info=current_display_user_info,
                            google_user_name=pending_google_user.get('name', 'User'),
                            google_user_email=pending_google_user.get('email'))
-
 
 @app.route('/login-with-google')
 def login_with_google():
@@ -288,6 +295,7 @@ def login():
         # Nếu dùng AJAX, client sẽ không thấy redirect này trừ khi response là redirect.
         # Nếu là GET request đến /login khi đã đăng nhập, thì redirect về home.
         if request.method == 'GET':
+            flash('Đăng nhập thành công!', 'success')
             return redirect(url_for('home'))
         # Nếu là POST (tức là AJAX submit) mà đã đăng nhập, thì không nên xảy ra, nhưng trả về lỗi
         return jsonify({"success": False, "message": "Bạn đã đăng nhập rồi."}), 400
@@ -315,6 +323,7 @@ def login():
                 'is_admin': user.is_admin
             }
             return jsonify({"success": True, "message": "Đăng nhập thành công!"})
+
         else:
             return jsonify({"success": False, "message": "Email hoặc mật khẩu không đúng."}), 401  # Unauthorized
 
@@ -325,7 +334,7 @@ def login():
 # --- Route Đăng ký ---
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if session.get("db_user_id") or google.authorized:  # Nếu đã đăng nhập thì về home
+    if session.get("db_user_id") or google.authorized:
         return redirect(url_for('home'))
 
     if request.method == 'POST':
@@ -333,13 +342,24 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
+        agree_terms = request.form.get('agree_terms')  # <<< LẤY GIÁ TRỊ CHECKBOX
 
+        # Kiểm tra các trường input
         if not name or not email or not password or not confirm_password:
             flash('Vui lòng điền đầy đủ thông tin.', 'danger')
             return redirect(url_for('register'))
 
+        if len(password) < 6:
+            flash("Mật khẩu phải có ít nhất 6 ký tự.", "danger")
+            return redirect(url_for('register'))
+
         if password != confirm_password:
             flash('Mật khẩu và xác nhận mật khẩu không khớp.', 'danger')
+            return redirect(url_for('register'))
+
+        # KIỂM TRA AGREE_TERMS Ở ĐÂY
+        if not agree_terms:  # Checkbox nếu không được chọn sẽ không gửi giá trị, nên request.form.get sẽ là None
+            flash('Bạn phải đồng ý với Điều khoản Dịch vụ và Chính sách Bảo mật để đăng ký.', 'danger')
             return redirect(url_for('register'))
 
         existing_user = User.query.filter_by(email=email).first()
@@ -348,17 +368,18 @@ def register():
             return redirect(url_for('register'))
 
         new_user = User(name=name, email=email)
-        new_user.set_password(password)  # Hash mật khẩu
+        new_user.set_password(password)
 
         try:
             db.session.add(new_user)
             db.session.commit()
+            # Có thể thêm một trường is_terms_agreed vào model User nếu bạn muốn lưu trạng thái này
             flash('Đăng ký thành công! Vui lòng đăng nhập.', 'success')
-            return redirect(url_for('login'))  # Chuyển đến trang đăng nhập
+            return redirect(url_for('login'))
         except Exception as e:
             db.session.rollback()
             flash(f'Đã xảy ra lỗi khi đăng ký: {str(e)}', 'danger')
-            print(f"Error during registration: {e}")  # Ghi log lỗi
+            print(f"Error during registration: {e}")
             return redirect(url_for('register'))
 
     return render_template('register.html')
@@ -887,47 +908,59 @@ def delete_entry_route(entry_id):
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile_page():
-    # 1. Kiểm tra đăng nhập
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
         flash("Vui lòng đăng nhập để xem hồ sơ của bạn.", "warning")
         return redirect(url_for('home'))
 
-    # 2. Lấy đối tượng User từ database
     user = User.query.get(current_user_db_id)
     if not user:
         flash("Không tìm thấy thông tin người dùng.", "danger")
-        session.clear()  # Xóa session hỏng nếu có
+        session.clear()
         return redirect(url_for('home'))
 
-    # 3. Xử lý việc cập nhật/đặt mật khẩu nếu là POST request
     if request.method == 'POST':
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
+        current_password_from_form = request.form.get('current_password')  # Lấy mật khẩu hiện tại từ form
 
-        if not new_password or not confirm_password:
-            flash("Vui lòng nhập mật khẩu mới và xác nhận mật khẩu.", "danger")
-        elif new_password != confirm_password:
-            flash("Mật khẩu mới và xác nhận mật khẩu không khớp.", "danger")
-        elif len(new_password) < 6:  # Thêm kiểm tra độ dài mật khẩu cơ bản
-            flash("Mật khẩu mới phải có ít nhất 6 ký tự.", "danger")
-        else:
-            try:
-                user.set_password(new_password)  # Hàm này sẽ hash mật khẩu
-                db.session.commit()
-                flash("Đã cập nhật/đặt mật khẩu thành công!", "success")
-                print(f"User {user.email} đã cập nhật mật khẩu.")  # Debug
-            except Exception as e:
-                db.session.rollback()
-                flash(f"Có lỗi xảy ra khi cập nhật mật khẩu: {str(e)}", "danger")
-                print(f"Lỗi khi user {user.email} cập nhật mật khẩu: {e}")  # Debug
+        # Biến cờ để kiểm tra xem có nên thực hiện set_password không
+        can_set_password = False
+        pass
 
-        return redirect(url_for('profile_page'))  # Redirect để tránh submit lại form khi refresh
+        if user.password_hash:  # Người dùng đã có mật khẩu, nghĩa là họ đang THAY ĐỔI mật khẩu
+            if not current_password_from_form:
+                flash("Vui lòng nhập mật khẩu hiện tại của bạn để thay đổi.", "danger")
+            elif not user.check_password(current_password_from_form):
+                flash("Mật khẩu hiện tại không đúng.", "danger")
+            else:  # Mật khẩu hiện tại đúng
+                can_set_password = True
+        else:  # Người dùng chưa có mật khẩu (ví dụ: user Google), nghĩa là họ đang ĐẶT mật khẩu mới
+            can_set_password = True
 
-    # 4. Lấy thông tin để hiển thị (cho GET request hoặc sau khi POST)
-    # display_user_info nên lấy từ đối tượng user đã query từ DB
-    display_user_info = {
+        if can_set_password:
+            if not new_password or not confirm_password:
+                flash("Vui lòng nhập mật khẩu mới và xác nhận mật khẩu.", "danger")
+            elif len(new_password) < 6:
+                flash("Mật khẩu mới phải có ít nhất 6 ký tự.", "danger")
+            elif new_password != confirm_password:
+                flash("Mật khẩu mới và xác nhận mật khẩu không khớp.", "danger")
+            else:
+                try:
+                    user.set_password(new_password)
+                    db.session.commit()
+                    flash("Đã cập nhật mật khẩu thành công!", "success")
+                    print(f"User {user.email} đã cập nhật mật khẩu.")  # Debug
+                except Exception as e:
+                    db.session.rollback()
+                    flash(f"Có lỗi xảy ra khi cập nhật mật khẩu: {str(e)}", "danger")
+                    print(f"Lỗi khi user {user.email} cập nhật mật khẩu: {e}")
+
+        return redirect(url_for('profile_page'))
+
+    display_user_info_for_profile = {  # <<< BẠN CẦN CÓ DÒNG NÀY
         "name": user.name,
+        "display_name": user.display_name,
         "email": user.email,
         "picture": user.picture_url,
         "has_password": bool(user.password_hash),
@@ -935,7 +968,8 @@ def profile_page():
     }
 
     return render_template('profile.html',
-                           user_profile_info=display_user_info)
+                           user_profile_info=display_user_info_for_profile,
+                           user_info=get_current_user_info())  # user_info cho base.html
 
 
 @app.route('/admin')
@@ -1312,6 +1346,88 @@ def edit_my_vocab_entry(entry_id):
         db.session.rollback()
         print(f"Lỗi khi User {current_user_db_id} sửa entry ID {entry_id}: {e}")
         return jsonify({"success": False, "message": f"Lỗi server: {str(e)}"}), 500
+
+
+@app.route('/dashboard')
+# @login_required # Nếu bạn đã tạo decorator này, hãy dùng nó
+def dashboard_page():
+    # 1. Kiểm tra đăng nhập
+    current_user_db_id = session.get("db_user_id")
+    if not current_user_db_id:
+        flash("Vui lòng đăng nhập để truy cập dashboard.", "warning")
+        return redirect(url_for('home', open_login_modal='true'))  # Mở modal login trên trang chủ
+
+    # 2. Lấy thông tin người dùng hiện tại để hiển thị trên trang (ví dụ: avatar ở header)
+    # và để chào mừng
+    display_user_info = get_current_user_info()
+    if not display_user_info:  # Trường hợp hiếm gặp nếu session db_user_id có nhưng không lấy được user
+        flash("Không thể tải thông tin người dùng.", "danger")
+        return redirect(url_for('logout'))
+
+    # 3. Lấy các thống kê
+    num_lists = VocabularyList.query.filter_by(user_id=current_user_db_id).count()
+    num_entries = VocabularyEntry.query.filter_by(
+        user_id=current_user_db_id).count()  # Đảm bảo model VocabularyEntry có user_id
+
+    stats = {
+        "num_lists": num_lists,
+        "num_entries": num_entries
+    }
+
+    # 4. Lấy một vài danh sách gần đây (ví dụ: 3 danh sách) - tùy chọn
+    recent_lists = VocabularyList.query.filter_by(user_id=current_user_db_id).order_by(
+        VocabularyList.created_at.desc()).limit(3).all()
+
+    return render_template('dashboard.html',
+                           user_info=display_user_info,  # Cho base.html và lời chào
+                           user_stats=stats,
+                           recent_lists=recent_lists)
+
+
+@app.route('/profile/update-info', methods=['POST'])
+# @login_required
+def update_profile_info_route():
+    current_user_db_id = session.get("db_user_id")
+    if not current_user_db_id:
+        flash("Vui lòng đăng nhập.", "warning")
+        return redirect(url_for('home'))
+
+    user_to_update = User.query.get(current_user_db_id)
+    if not user_to_update:
+        flash("Lỗi: Không tìm thấy người dùng.", "danger")
+        return redirect(url_for('home'))
+
+    new_display_name = request.form.get('display_name', '').strip()
+
+    # Validate display_name (ví dụ: không quá dài)
+    if len(new_display_name) > 100:
+        flash("Tên hiển thị quá dài (tối đa 100 ký tự).", "danger")
+        return redirect(url_for('profile_page'))
+
+    # Nếu người dùng không nhập gì, có thể giữ tên cũ hoặc xóa display_name để dùng name gốc
+    # Ở đây, nếu họ gửi chuỗi rỗng, ta có thể đặt display_name là None
+    user_to_update.display_name = new_display_name if new_display_name else None
+    # Hoặc, nếu muốn giữ tên cũ nếu input rỗng:
+    # if new_display_name:
+    # user_to_update.display_name = new_display_name
+
+    try:
+        db.session.commit()
+        flash("Đã cập nhật thông tin hồ sơ thành công!", "success")
+        # Cập nhật lại user_info trong session nếu display_name ảnh hưởng đến nó
+        if 'user_info' in session and session['user_info'] is not None:
+            session['user_info'][
+                'name'] = new_display_name if new_display_name else user_to_update.name  # Hiển thị display_name hoặc name gốc
+            session['user_info']['display_name'] = new_display_name if new_display_name else None
+            # Đánh dấu session đã được sửa đổi để Flask lưu lại
+            session.modified = True
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Lỗi khi cập nhật thông tin: {str(e)}", "danger")
+        print(f"Lỗi khi user {user_to_update.email} cập nhật display_name: {e}")
+
+    return redirect(url_for('profile_page'))
 
 
 if __name__ == '__main__':

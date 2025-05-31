@@ -10,13 +10,14 @@ db = SQLAlchemy()
 class User(db.Model):
     __tablename__ = 'user'  # Tên bảng rõ ràng (tùy chọn nhưng tốt)
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=True)
+    name = db.Column(db.String(100), nullable=True)  # Tên gốc (từ Google hoặc form đăng ký)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=True)
     google_id = db.Column(db.String(100), unique=True, nullable=True)
     picture_url = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    display_name = db.Column(db.String(100), nullable=True)  # <<< TRƯỜNG MỚI: Tên hiển thị
 
     is_blocked = db.Column(db.Boolean, default=False, nullable=True)
     # Quan hệ: Một User có nhiều VocabularyList

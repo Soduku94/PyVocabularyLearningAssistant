@@ -1,82 +1,151 @@
+{# File: templates/index.html #}
 {% extends "base.html" %}
 
 {% block title %}
-    Trang chủ - G-Easy English
+    G-Easy English - Learn Vocabulary Effectively
 {% endblock %}
 
 {% block page_content %}
-    <section class="relative bg-cover bg-center rounded-lg shadow-lg overflow-hidden"
-             style="background-image: url('{{ url_for('static', filename='images/hero-background.jpg') }}'); height: 400px;">
-        <div class="absolute inset-0 bg-black opacity-30"></div>
-        <div class="relative z-10 flex flex-col justify-center items-start h-full p-8 md:p-12">
-            <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">G-EASY</h2>
-            <p class="text-lg md:text-xl text-gray-100 mb-6 max-w-2xl">
+
+    {# HERO SECTION - Responsive #}
+    <section
+            class="relative h-[350px] sm:h-[400px] md:h-[500px] lg:h-[550px] bg-cover bg-center rounded-xl overflow-hidden shadow-lg group">
+        <div class="absolute inset-0 bg-no-repeat bg-cover bg-center transition-transform duration-500 ease-in-out group-hover:scale-105"
+             style="background-image: url('{{ url_for('static', filename='images/hero_banner_study.jpg') }}');">
+        </div>
+        <div class="absolute inset-0 bg-black bg-opacity-40"></div>
+        <div class="relative z-10 h-full flex flex-col justify-center items-start text-white p-6 sm:p-8 md:p-12 lg:p-16 max-w-xl md:max-w-2xl lg:max-w-3xl">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 md:mb-6 leading-tight">
+                G-Easy
+            </h1>
+            <p class="text-base sm:text-lg md:text-xl lg:text-2xl mb-4 sm:mb-6 md:mb-8 leading-relaxed">
                 Learn English vocabulary with clear meanings, vivid examples, and accurate pronunciation. Your saved
                 words are always ready to support your learning anytime.
             </p>
+            {# Nút Call to Action có thể thêm ở đây nếu muốn #}
         </div>
-        <button class="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 hidden md:block">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        {# Các nút điều hướng trái/phải của Hero section có thể tạm ẩn trên mobile nếu không cần thiết #}
+        <button aria-label="Previous slide"
+                class="absolute left-2 sm:left-4 md:left-6 top-1/2 transform -translate-y-1/2 z-20 p-2 bg-white bg-opacity-30 hover:bg-opacity-50 rounded-full text-gray-700 hover:text-black transition-colors duration-300">
+            <svg class="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                 stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
         </button>
-        <button class="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 hidden md:block">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <button aria-label="Next slide"
+                class="absolute right-2 sm:right-4 md:right-6 top-1/2 transform -translate-y-1/2 z-20 p-2 bg-white bg-opacity-30 hover:bg-opacity-50 rounded-full text-gray-700 hover:text-black transition-colors duration-300">
+            <svg class="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                 stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+            </svg>
         </button>
     </section>
+    {# KẾT THÚC HERO SECTION #}
 
-    <section class="mt-12 py-12 bg-white rounded-lg shadow-lg">
-        <div class="container mx-auto px-6 md:px-12">
-            <div class="flex flex-col md:flex-row items-center">
-                <div class="md:w-1/2 md:pr-12 mb-8 md:mb-0">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-4">About us</h2>
-                    <p class="text-gray-600 leading-relaxed mb-6">
+
+    {# ABOUT US SECTION - Responsive #}
+    <section class="py-10 sm:py-12 md:py-20 bg-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center md:space-x-8 lg:space-x-12">
+                <div class="md:w-1/2 mb-8 md:mb-0 text-center md:text-left">
+                    <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4 sm:mb-6">
+                        About us
+                    </h2>
+                    <p class="text-gray-600 leading-relaxed text-md sm:text-lg mb-6 sm:mb-8">
                         We build smart tools to help you learn English vocabulary more effectively. With accurate
                         translations, AI-generated example sentences, and personal word lists, we make your learning
                         journey easier, faster, and more fun.
                     </p>
-                    <a href="#" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg inline-block">Details</a>
+                    <a href="#"
+                       class="inline-block px-6 py-2.5 sm:px-8 sm:py-3 bg-transparent text-orange-500 font-semibold border-2 border-orange-500 rounded-lg hover:bg-orange-500 hover:text-white transition duration-300 ease-in-out transform hover:scale-105">
+                        Details
+                    </a>
                 </div>
                 <div class="md:w-1/2">
-                    <img src="{{ url_for('static', filename='images/about-us-image.jpg') }}" alt="Our Team" class="rounded-lg shadow-md w-full h-auto object-cover" style="max-height: 350px;">
+                    <img src="{{ url_for('static', filename='images/about_us_team.jpg') }}" alt="About Us - Our Team"
+                         class="rounded-xl shadow-xl w-full h-auto object-cover max-h-[250px] sm:max-h-[300px] md:max-h-[350px]">
                 </div>
             </div>
         </div>
     </section>
+    {# KẾT THÚC ABOUT US SECTION #}
 
-    <section class="mt-12 py-12">
-        <div class="container mx-auto px-6 md:px-12 text-center">
-            <h2 class="text-3xl font-bold text-gray-800 mb-3">G-Easy English</h2>
-            <p class="text-gray-600 leading-relaxed max-w-3xl mx-auto mb-10">
-                We've gathered a collection of smart, easy-to-use tools to support your English learning journey. Whether you're reviewing vocabulary or practicing pronunciation, everything you need is right here at your fingertips!
+
+    {# G-EASY ENGLISH FEATURES SECTION - Responsive #}
+    <section class="py-10 sm:py-12 md:py-20 bg-gray-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-3 sm:mb-4">
+                G-Easy English
+            </h2>
+            <p class="text-gray-600 leading-relaxed text-md sm:text-lg max-w-2xl lg:max-w-3xl mx-auto mb-10 sm:mb-12 md:mb-16">
+                We've gathered a collection of smart, easy-to-use tools to support your English learning journey.
+                Whether you're reviewing vocabulary or practicing pronunciation, everything you need is right here at
+                your fingertips!
             </p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-                <div class="bg-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
-                    <div class="text-4xl mb-4 text-orange-500">📚</div><h3 class="text-xl font-semibold text-gray-700 mb-2">My Lists</h3>
+            {# SỬA DÒNG NÀY ĐỂ CÓ LAYOUT 2x2 NGAY CẢ TRÊN MOBILE và 4x1 trên Desktop  #}
+           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+            {# Feature 1: My Lists #}
+            <div class="p-4 sm:p-6 bg-white rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out flex flex-col justify-center items-center text-center aspect-square">
+                <div class="inline-block p-2 sm:p-3 rounded-full bg-orange-100 text-orange-500 mb-2 sm:mb-4">
+                    <svg class="h-6 w-6 sm:h-7 md:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
-                    <div class="text-4xl mb-4 text-orange-500">➕</div><h3 class="text-xl font-semibold text-gray-700 mb-2">Enter New Words</h3>
+                <h3 class="text-sm sm:text-base md:text-lg font-semibold text-gray-700">My Lists</h3>
+            </div>
+
+            {# Feature 2: Enter New Words #}
+            <div class="p-4 sm:p-6 bg-white rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out flex flex-col justify-center items-center text-center aspect-square">
+                <div class="inline-block p-2 sm:p-3 rounded-full bg-orange-100 text-orange-500 mb-2 sm:mb-4">
+                    <svg class="h-6 w-6 sm:h-7 md:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
-                    <div class="text-4xl mb-4 text-orange-500">🔗</div><h3 class="text-xl font-semibold text-gray-700 mb-2">Reference</h3>
+                <h3 class="text-sm sm:text-base md:text-lg font-semibold text-gray-700">Enter New Words</h3>
+            </div>
+
+            {# Feature 3: Reference #}
+            <div class="p-4 sm:p-6 bg-white rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out flex flex-col justify-center items-center text-center aspect-square">
+                <div class="inline-block p-2 sm:p-3 rounded-full bg-orange-100 text-orange-500 mb-2 sm:mb-4">
+                     <svg class="h-6 w-6 sm:h-7 md:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 </div>
-                <div class="bg-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
-                    <div class="text-4xl mb-4 text-orange-500">👤</div><h3 class="text-xl font-semibold text-gray-700 mb-2">User Profile</h3>
+                <h3 class="text-sm sm:text-base md:text-lg font-semibold text-gray-700">Reference</h3>
+            </div>
+
+            {# Feature 4: User Profile #}
+            <div class="p-4 sm:p-6 bg-white rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out flex flex-col justify-center items-center text-center aspect-square">
+                <div class="inline-block p-2 sm:p-3 rounded-full bg-orange-100 text-orange-500 mb-2 sm:mb-4">
+                    <svg class="h-6 w-6 sm:h-7 md:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 </div>
+                <h3 class="text-sm sm:text-base md:text-lg font-semibold text-gray-700">User Profile</h3>
             </div>
         </div>
+        </div>
     </section>
+    {# KẾT THÚC G-EASY ENGLISH FEATURES SECTION #}
 
-    <section class="mt-12 py-12 bg-orange-50 rounded-lg shadow-lg">
-        <div class="container mx-auto px-6 md:px-12">
-            <div class="flex flex-col md:flex-row items-center">
-                <div class="md:w-1/2 md:pr-10 mb-8 md:mb-0 text-center md:text-left">
-                    <h2 class="text-3xl font-bold text-gray-800 mb-4">Practice English Vocabularies</h2>
-                    <p class="text-gray-600 leading-relaxed mb-8">G-Easy helps you practice your English vocabularies every time, everywhere!</p>
-                    <a href="#" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg inline-block text-lg">Check My Lists</a>
+    {# PRACTICE ENGLISH VOCABULARIES SECTION - Responsive #}
+    <section class="py-10 sm:py-12 md:py-20 bg-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center md:space-x-8 lg:space-x-12">
+                <div class="md:w-1/2 mb-8 md:mb-0 text-center md:text-left">
+                    <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-4 sm:mb-6">
+                        Practice English Vocabularies
+                    </h2>
+                    <p class="text-gray-600 leading-relaxed text-md sm:text-lg mb-6 sm:mb-8">
+                        G-Easy helps you practice your English vocabularies every time, everywhere!
+                    </p>
+                    <a href="{{ url_for('my_lists_page') if user_info else url_for('home', open_login_modal='true') }}"
+                       class="inline-block px-6 py-2.5 sm:px-8 sm:py-3 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 transition duration-300 ease-in-out transform hover:scale-105">
+                        Check My Lists
+                    </a>
                 </div>
                 <div class="md:w-1/2">
-                    <img src="{{ url_for('static', filename='images/practice-vocab-image.jpg') }}" alt="Practice Vocabularies" class="rounded-lg shadow-md w-full h-auto object-cover" style="max-height: 380px;">
+                    <img src="{{ url_for('static', filename='images/practice_section_people.jpg') }}"
+                         alt="Practice Vocabularies"
+                         class="rounded-xl shadow-xl w-full h-auto object-cover max-h-[250px] sm:max-h-[300px] md:max-h-[350px]">
                 </div>
             </div>
         </div>
     </section>
+    {# KẾT THÚC PRACTICE ENGLISH VOCABULARIES SECTION #}
+
+
+
 {% endblock %}
