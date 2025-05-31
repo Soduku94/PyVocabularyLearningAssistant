@@ -8,6 +8,7 @@ from sqlalchemy.sql import case
 from dotenv import load_dotenv # Thêm dòng này
 load_dotenv()
 
+
 from flask_migrate import Migrate
 from datetime import datetime  # <<< THÊM DÒNG NÀY
 from models import db, User, VocabularyList, VocabularyEntry, APILog
