@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng ký - G-Easy English</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Màu cam như trong thiết kế của bạn, ví dụ:
+                        gOrange: '#FFA500',
+                        gLightOrange: '#FFDDB2',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 md:p-12 rounded-xl shadow-2xl w-full max-w-md">
+        <div class="text-center mb-8">
+            <a href="{{ url_for('home') }}" class="text-3xl font-bold text-orange-500">G-EASY</a>
+            <p class="text-sm text-gray-500">ENGLISH</p>
+            <h2 class="text-2xl font-semibold text-gray-700 mt-4">Tạo tài khoản mới</h2>
+        </div>
+
+        {# Hiển thị thông báo flash #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="p-4 mb-4 text-sm rounded-lg
+                        {% if category == 'danger' %} bg-red-100 text-red-700
+                        {% elif category == 'success' %} bg-green-100 text-green-700
+                        {% elif category == 'warning' %} bg-yellow-100 text-yellow-700
+                        {% else %} bg-blue-100 text-blue-700
+                        {% endif %}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('register') }}" class="space-y-6">
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700">Họ và Tên</label>
+                <input type="text" name="name" id="name" required
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Địa chỉ Email</label>
+                <input type="email" name="email" id="email" required autocomplete="email"
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Mật khẩu</label>
+                <input type="password" name="password" id="password" required autocomplete="new-password"
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+            </div>
+            <div>
+                <label for="confirm_password" class="block text-sm font-medium text-gray-700">Xác nhận Mật khẩu</label>
+                <input type="password" name="confirm_password" id="confirm_password" required autocomplete="new-password"
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+            </div>
+            <div>
+                <button type="submit"
+                        class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                    Đăng ký
+                </button>
+            </div>
+        </form>
+        <p class="mt-6 text-center text-sm text-gray-600">
+            Đã có tài khoản?
+            <a href="{{ url_for('login') }}" class="font-medium text-orange-600 hover:text-orange-500">
+                Đăng nhập tại đây
+            </a>
+        </p>
+         <p class="mt-4 text-center text-sm text-gray-600">
+            Hoặc đăng nhập với Google:
+            <a href="{{ url_for('google.login') }}" class="font-medium text-blue-600 hover:text-blue-500 inline-flex items-center">
+                <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10s4.477 10 10 10c2.404 0 4.602-.866 6.317-2.311l-2.093-1.628A5.983 5.983 0 0110 16c-3.309 0-6-2.691-6-6s2.691-6 6-6c1.543 0 2.932.584 3.969 1.524L16.667 4.1A9.981 9.981 0 0010 0z" clip-rule="evenodd"></path><path fill-rule="evenodd" d="M20 10c0-.667-.057-1.308-.168-1.933H10v3.866h5.658c-.246 1.249-.977 2.319-1.983 3.035l2.093 1.628C18.078 14.967 20 12.689 20 10z" clip-rule="evenodd"></path><path fill-rule="evenodd" d="M3.969 11.524A5.983 5.983 0 014 10c0-.52.072-1.025.208-1.504l-2.094-1.63A9.985 9.985 0 000 10c0 1.526.344 2.961.948 4.247l2.073-1.628A5.99 5.99 0 013.97 11.524z" clip-rule="evenodd"></path><path fill-rule="evenodd" d="M10 16c1.143 0 2.204-.253 3.134-.718l2.093 1.628A9.947 9.947 0 0010 20c-2.783 0-5.236-1.259-6.98-3.267l2.073-1.628A5.99 5.99 0 0110 16z" clip-rule="evenodd"></path></svg>
+                Đăng nhập bằng Google
+            </a>
+        </p>
+    </div>
+</body>
+</html>

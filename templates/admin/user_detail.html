@@ -1,0 +1,130 @@
+{# File: templates/admin/user_detail.html #}
+{% extends "base.html" %}
+
+{% block title %}
+User Details: {{ viewed_user.email if viewed_user else "Unknown User" }} - Admin
+{% endblock %}
+
+{% block page_content %}
+<div class="bg-white p-6 md:p-8 rounded-lg shadow-lg">
+    {% if viewed_user %}
+    <div class="mb-8 pb-4 border-b border-gray-200">
+        <div class="flex items-center space-x-4">
+            {% if viewed_user.picture_url %}
+            <img src="{{ viewed_user.picture_url }}" alt="Avatar of {{ viewed_user.name }}"
+                 class="w-16 h-16 rounded-full border object-cover">
+            {% else %}
+            <span class="inline-block h-16 w-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                <svg class="h-12 w-12 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            </span>
+            {% endif %}
+            <div>
+                <h1 class="text-2xl md:text-3xl font-semibold text-gray-800">{{ viewed_user.name if viewed_user.name
+                    else "N/A" }}</h1>
+                <p class="text-md text-gray-600">{{ viewed_user.email }}</p>
+                <p class="text-xs text-gray-500 mt-1">User ID: {{ viewed_user.id }}</p>
+            </div>
+        </div>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <p class="text-gray-500"><strong>Admin Status:</strong>
+                    {% if viewed_user.is_admin %}
+                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Yes</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">No</span>
+                    {% endif %}
+                </p>
+                <p class="text-gray-500 mt-1"><strong>Google ID:</strong> {{ viewed_user.google_id if
+                    viewed_user.google_id else 'N/A' }}</p>
+            </div>
+            <div>
+                <p class="text-gray-500"><strong>Account Created:</strong> {{ viewed_user.created_at.strftime('%Y-%m-%d
+                    %H:%M:%S') }}</p>
+                <p class="text-gray-500 mt-1"><strong>Has Password Set:</strong>
+                    {% if viewed_user.password_hash %}
+                    <span class="text-green-600">Yes</span>
+                    {% else %}
+                    <span class="text-yellow-600">No (Google Login Only)</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div> {# Thêm div này để bao bọc Account Status cho đúng cặp #}
+                <p class="text-gray-500 mt-1"><strong>Account Status:</strong>
+                    {% if viewed_user.is_blocked %} {# <<< SỬA Ở ĐÂY: Thêm {% ... %} #}
+                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-200 text-red-800">Blocked</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                    {% endif %}
+                </p> {# <<< THÊM THẺ ĐÓNG </p> Ở ĐÂY #}
+            </div>
+        </div>
+        <div class="mt-6 flex space-x-3 items-center"> {# Gom các nút hành động vào đây #}
+            {# Nút Xóa User #}
+            {% if user_info and viewed_user.id != session.get('db_user_id') and not viewed_user.is_admin %}
+            <form method="POST" action="{{ url_for('admin_delete_user_route', user_id_to_delete=viewed_user.id) }}"
+                  onsubmit="return confirm('Bạn có CHẮC CHẮN muốn xóa người dùng \'{{ viewed_user.email }}\' và TẤT CẢ dữ liệu của họ (danh sách từ, từ vựng)? Hành động này KHÔNG THỂ hoàn tác!');">
+                <button type="submit"
+                        class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Delete User Account
+                </button>
+            </form>
+            {% elif viewed_user.id == session.get('db_user_id') %}
+            <p class="text-sm text-gray-500 italic">(Bạn không thể tự xóa tài khoản của chính mình từ đây.)</p>
+            {% elif viewed_user.is_admin and viewed_user.id != session.get('db_user_id') %} {# Sửa điều kiện này một
+            chút #}
+            <p class="text-sm text-gray-500 italic">(Không thể xóa tài khoản Admin khác từ giao diện này.)</p>
+            {% endif %}
+
+            {# Nút Chặn/Bỏ chặn người dùng #}
+            {% if user_info and viewed_user.id != session.get('db_user_id') and not viewed_user.is_admin %}
+            <form method="POST"
+                  action="{{ url_for('admin_toggle_block_user_route', user_id_to_toggle=viewed_user.id) }}"
+                  onsubmit="return confirm('Bạn có chắc chắn muốn {{ 'bỏ chặn' if viewed_user.is_blocked else 'chặn' }} người dùng \'{{ viewed_user.email }}\' không?');">
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium rounded-md border
+                                   {% if viewed_user.is_blocked %}
+                                       bg-yellow-400 hover:bg-yellow-500 text-black border-yellow-500 {# Đổi text-white thành text-black cho dễ đọc trên nền vàng #}
+                                   {% else %}
+                                       bg-red-500 hover:bg-red-600 text-white border-red-600
+                                   {% endif %}">
+                    {{ 'Unblock User' if viewed_user.is_blocked else 'Block User' }}
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    <h2 class="text-xl font-semibold text-gray-700 mb-4 mt-8">Vocabulary Lists by this User ({{
+        vocabulary_lists_of_user|length }})</h2>
+    {% if vocabulary_lists_of_user %}
+    <div class="space-y-3">
+        {% for vocab_list in vocabulary_lists_of_user %}
+        <div class="p-3 border border-gray-200 rounded-md hover:bg-gray-50">
+            <a href="{{ url_for('admin_view_list_entries_page', owner_user_id=viewed_user.id, list_id=vocab_list.id) }}"
+               class="font-medium text-orange-600 hover:text-orange-700">{{ vocab_list.name }}</a>
+            <span class="text-xs text-gray-500 ml-2"> (ID: {{ vocab_list.id }}, Created: {{ vocab_list.created_at.strftime('%Y-%m-%d') }})</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-gray-600">This user has not created any vocabulary lists yet.</p>
+    {% endif %}
+
+    <div class="mt-8">
+        <a href="{{ url_for('admin_dashboard') }}" class="text-sm text-orange-600 hover:text-orange-700">&larr; Back to
+            User
+            List (Admin Dashboard)</a>
+    </div>
+
+    {% else %} {# else của if viewed_user #}
+    <p class="text-red-500 text-center">User not found.</p>
+    <div class="mt-8">
+        <a href="{{ url_for('admin_dashboard') }}" class="text-sm text-orange-600 hover:text-orange-700">&larr; Back to
+            User
+            List (Admin Dashboard)</a>
+    </div>
+    {% endif %} {# đóng if viewed_user #}
+</div> {# đóng div.bg-white p-6 ... #}
+{% endblock %} {# đóng block page_content #}

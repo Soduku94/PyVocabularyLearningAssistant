@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Trang chủ - G-Easy English
+{% endblock %}
+
+{% block page_content %}
+    <section class="relative bg-cover bg-center rounded-lg shadow-lg overflow-hidden"
+             style="background-image: url('{{ url_for('static', filename='images/hero-background.jpg') }}'); height: 400px;">
+        <div class="absolute inset-0 bg-black opacity-30"></div>
+        <div class="relative z-10 flex flex-col justify-center items-start h-full p-8 md:p-12">
+            <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">G-EASY</h2>
+            <p class="text-lg md:text-xl text-gray-100 mb-6 max-w-2xl">
+                Learn English vocabulary with clear meanings, vivid examples, and accurate pronunciation. Your saved
+                words are always ready to support your learning anytime.
+            </p>
+        </div>
+        <button class="absolute left-4 top-1/2 transform -translate-y-1/2 z-20 bg-white bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 hidden md:block">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <button class="absolute right-4 top-1/2 transform -translate-y-1/2 z-20 bg-white bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 hidden md:block">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </button>
+    </section>
+
+    <section class="mt-12 py-12 bg-white rounded-lg shadow-lg">
+        <div class="container mx-auto px-6 md:px-12">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 md:pr-12 mb-8 md:mb-0">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">About us</h2>
+                    <p class="text-gray-600 leading-relaxed mb-6">
+                        We build smart tools to help you learn English vocabulary more effectively. With accurate
+                        translations, AI-generated example sentences, and personal word lists, we make your learning
+                        journey easier, faster, and more fun.
+                    </p>
+                    <a href="#" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-6 rounded-lg inline-block">Details</a>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="{{ url_for('static', filename='images/about-us-image.jpg') }}" alt="Our Team" class="rounded-lg shadow-md w-full h-auto object-cover" style="max-height: 350px;">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mt-12 py-12">
+        <div class="container mx-auto px-6 md:px-12 text-center">
+            <h2 class="text-3xl font-bold text-gray-800 mb-3">G-Easy English</h2>
+            <p class="text-gray-600 leading-relaxed max-w-3xl mx-auto mb-10">
+                We've gathered a collection of smart, easy-to-use tools to support your English learning journey. Whether you're reviewing vocabulary or practicing pronunciation, everything you need is right here at your fingertips!
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                    <div class="text-4xl mb-4 text-orange-500">📚</div><h3 class="text-xl font-semibold text-gray-700 mb-2">My Lists</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                    <div class="text-4xl mb-4 text-orange-500">➕</div><h3 class="text-xl font-semibold text-gray-700 mb-2">Enter New Words</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                    <div class="text-4xl mb-4 text-orange-500">🔗</div><h3 class="text-xl font-semibold text-gray-700 mb-2">Reference</h3>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+                    <div class="text-4xl mb-4 text-orange-500">👤</div><h3 class="text-xl font-semibold text-gray-700 mb-2">User Profile</h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mt-12 py-12 bg-orange-50 rounded-lg shadow-lg">
+        <div class="container mx-auto px-6 md:px-12">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 md:pr-10 mb-8 md:mb-0 text-center md:text-left">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-4">Practice English Vocabularies</h2>
+                    <p class="text-gray-600 leading-relaxed mb-8">G-Easy helps you practice your English vocabularies every time, everywhere!</p>
+                    <a href="#" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-8 rounded-lg inline-block text-lg">Check My Lists</a>
+                </div>
+                <div class="md:w-1/2">
+                    <img src="{{ url_for('static', filename='images/practice-vocab-image.jpg') }}" alt="Practice Vocabularies" class="rounded-lg shadow-md w-full h-auto object-cover" style="max-height: 380px;">
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

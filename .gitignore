@@ -1,0 +1,34 @@
+# Môi trường ảo
+venv/
+.venv/
+env/
+ENV/
+*.pyenv
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database file (nếu bạn không muốn commit file .db)
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE-specific files (ví dụ cho PyCharm)
+.idea/
+*.iws
+*.iml
+
+# Files nhạy cảm (tạo một file riêng để chứa, ví dụ config.py, và thêm config.py vào .gitignore)
+ config.py
+.env
+# instance/ # Nếu bạn dùng instance folder cho config
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}G-Easy English{% endblock %}</title> {# Cho phép các trang con đặt title riêng #}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gOrange: '#FFA500',
+                        gLightOrange: '#FFDDB2',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src='https://code.responsivevoice.org/responsivevoice.js'></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .modal-active {
+            overflow: hidden;
+        }
+
+        .modal-backdrop {
+            transition: opacity 0.3s ease-in-out;
+        }
+    </style>
+    {% block head_extra %}{% endblock %} {# Cho CSS hoặc script riêng của trang con trong head #}
+</head>
+<body class="bg-gray-50">
+
+<div class="flex min-h-screen">
+    <aside class="fixed top-0 left-0 h-screen w-64 bg-white p-6 shadow-lg overflow-y-auto z-20">
+        <div class="mb-10 text-center">
+            <a href="{{ url_for('home') }}" class="text-2xl font-bold text-orange-500">G-EASY</a>
+            <p class="text-sm text-gray-500">ENGLISH</p>
+        </div>
+        <nav>
+            <ul>
+                {# Luôn hiển thị các link chung trước #}
+                <li class="mb-3">
+                    <a href="{{ url_for('home') }}"
+                       class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-orange-200 {% if request.endpoint == 'home' %}bg-orange-100{% endif %}">
+                        <span class="mr-3">🏠</span> <span>Home Page</span>
+                    </a>
+                </li>
+                {% if user_info %} {# Chỉ hiển thị các link này nếu người dùng đã đăng nhập #}
+                    <li class="mb-3">
+                        <a href="{{ url_for('my_lists_page') }}"
+                           class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-orange-200 {% if request.endpoint == 'my_lists_page' %}bg-orange-100{% endif %}">
+                            <span class="mr-3">📚</span> <span>My Lists</span>
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="{{ url_for('enter_words_page') }}"
+                           class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-orange-200 {% if request.endpoint == 'enter_words_page' %}bg-orange-100{% endif %}">
+                            <span class="mr-3">➕</span> <span>Enter new words</span>
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="#" class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-orange-100"> {# Link này chưa có route #}
+                            <span class="mr-3">🔗</span> <span>References</span>
+                        </a>
+                    </li>
+                    <li class="mb-3">
+                        <a href="{{ url_for('profile_page') }}"
+                           class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-orange-200 {% if request.endpoint == 'profile_page' %}bg-orange-100{% endif %}">
+                            <span class="mr-3">👤</span> <span>User Profile</span>
+                        </a>
+                    </li>
+                {% endif %}
+
+                {# Phần Admin Area chỉ hiển thị cho Admin và sau khi đã đăng nhập #}
+                {% if user_info and user_info.is_admin %}
+                <li class="mt-6 pt-6 border-t border-gray-200">
+                    <p class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin Area</p>
+                </li>
+                <li class="mb-3">
+                    <a href="{{ url_for('admin_dashboard') }}"
+                       class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-orange-200 {% if request.endpoint.startswith('admin_') and request.endpoint != 'admin_api_logs_page' %}bg-orange-100{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+                            <path fill-rule="evenodd" d="M10.5 14a4.5 4.5 0 00-4.472 4.002H10.5V14zM4.002 18.472A4.5 4.5 0 008.5 14H10V6.5A4.502 4.502 0 005.528 2.028a.75.75 0 00-.253.224L.607 6.14A.75.75 0 00.5 6.75v10.5a.75.75 0 00.75.75h2.252c.208 0 .41-.043.595-.128A4.502 4.502 0 004.002 18.472zM19.5 6.75a.75.75 0 00-.107-.382l-4.668-3.888a.75.75 0 00-.253-.224A4.502 4.502 0 0010 2.5V6h1.5a4.5 4.5 0 004.472 4.002H16V14a4.5 4.5 0 00-4.002 4.472H11.5v.028c.88.135 1.718.43 2.472.872H16.5a.75.75 0 00.75-.75V6.75h2.25a.75.75 0 00.75-.75V6.75z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>User Management</span> {# Đổi tên từ Admin Dashboard #}
+                    </a>
+                </li>
+                <li class="mb-3">
+                    <a href="{{ url_for('admin_api_logs_page') }}"
+                       class="flex items-center p-3 text-gray-700 rounded-lg hover:bg-orange-200 {% if request.endpoint == 'admin_api_logs_page' %}bg-orange-100{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span>API Logs</span>
+                    </a>
+                </li>
+                {% endif %} {# <<< THÊM ENDIF ĐỂ ĐÓNG KHỐI ADMIN MENU #}
+            </ul>
+        </nav>
+        {% if user_info %}
+        <div class="mt-auto pt-6 border-t border-gray-200 text-center">
+            <p class="text-sm text-gray-600">Đã đăng nhập với:</p>
+            {% if user_info.picture %}
+            <img src="{{ user_info.picture }}" alt="Avatar"
+                 class="rounded-full w-12 h-12 mx-auto mt-2 mb-1 border border-gray-300 object-cover">
+            {% endif %}
+            <p class="text-sm font-semibold text-gray-800 truncate">{{ user_info.name }}</p>
+            <p class="text-xs text-gray-500 truncate">{{ user_info.email }}</p>
+        </div>
+        {% endif %}
+    </aside>
+
+    <main class="flex-1 p-8 ml-64">
+        <header class="flex justify-between items-center mb-8">
+
+            <div class="flex items-center space-x-4">
+                <button class="text-gray-600 hover:text-orange-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                </button>
+                <button class="text-gray-600 hover:text-orange-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                </button>
+                {% if not user_info %}
+                <button id="openLoginModalBtn"
+                        class="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 text-sm font-medium">
+                    Đăng nhập
+                </button>
+                <a href="{{ url_for('register') }}"
+                   class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 text-sm font-medium">Đăng
+                    ký</a>
+                {% else %}
+                {% if user_info.picture %}
+                <img src="{{ user_info.picture }}" alt="Avatar"
+                     class="w-10 h-10 rounded-full border-2 border-orange-300 object-cover">
+                {% else %}
+                <span class="inline-block h-10 w-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center"><svg
+                        class="h-8 w-8 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path
+                        d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z"/></svg></span>
+                {% endif %}
+                <a href="{{ url_for('logout') }}"
+                   class="text-sm text-gray-600 hover:text-orange-500 font-medium px-3 py-2 rounded-md">Đăng xuất</a>
+                {% endif %}
+            </div>
+        </header>
+
+        {# Hiển thị thông báo flash chung cho các trang kế thừa #}
+        {% with messages = get_flashed_messages(with_categories=true, category_filter=["warning", "danger", "success",
+        "info"]) %}
+        {% if messages %}
+        <div class="mb-4">
+            {% for category, message in messages %}
+            <div class="p-4 text-sm rounded-lg
+                        {% if category == 'danger' %} bg-red-100 text-red-700
+                        {% elif category == 'success' %} bg-green-100 text-green-700
+                        {% elif category == 'warning' %} bg-yellow-100 text-yellow-700
+                        {% else %} bg-blue-100 text-blue-700
+                        {% endif %}" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block page_content %}{% endblock %} {# Nội dung chính của từng trang sẽ được đặt ở đây #}
+
+        <footer class="mt-16 pt-10 pb-8 border-t border-gray-200">
+            <div class="container mx-auto px-6 md:px-12">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="md:col-span-1">
+                        <div class="mb-4">
+                            <a href="{{ url_for('home') }}" class="text-2xl font-bold text-orange-500">G-EASY</a>
+                            <p class="text-sm text-gray-500">ENGLISH</p>
+                        </div>
+                        <p class="text-gray-500 text-sm leading-relaxed">
+                            Convenient English vocabulary learning system, for busy people.
+                        </p>
+                    </div>
+                    <div class="md:col-span-1">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3">Contact Us</h3>
+                        <ul class="space-y-2 text-sm">
+                            <li class="flex items-center text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-orange-500"
+                                     viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                                </svg>
+                                <span>+84 1234567890</span>
+                            </li>
+                            <li class="flex items-center text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-orange-500"
+                                     viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd"
+                                          d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                                          clip-rule="evenodd"/>
+                                </svg>
+                                <span>Nguyễn Trãi, Thanh Xuân, Hà Nội</span>
+                            </li>
+                            <li class="flex items-center text-gray-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-orange-500"
+                                     viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                                </svg>
+                                <span>contact@geasyenglish.com</span></li>
+                        </ul>
+                    </div>
+                    <div class="md:col-span-1">
+                        <h3 class="text-lg font-semibold text-gray-700 mb-3">Follow Us</h3>
+                        <div class="flex space-x-4">
+                            <a href="#" class="text-gray-500 hover:text-orange-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/>
+                                </svg>
+                            </a>
+                            <a href="#" class="text-gray-500 hover:text-orange-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor"
+                                     viewBox="0 0 24 24">
+                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.359 2.618 6.78 6.98 6.98 1.281.059 1.689.073 4.948.073s3.667-.014 4.947-.072c4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.947s-.014-3.667-.072-4.947c-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.689-.073-4.948-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 pt-8 border-t border-gray-300 text-center text-sm text-gray-500">
+                    <p>&copy; <span id="currentYear"></span> G-Easy English. All rights reserved.</p>
+                </div>
+            </div>
+        </footer>
+    </main>
+</div>
+
+<div id="loginModal"
+     class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-40 hidden modal-backdrop opacity-0">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0"
+         id="modalDialog">
+        <button id="closeLoginModalBtn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                 stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+        <div class="p-6 md:p-8">
+            <div class="text-center mb-6">
+                <h3 class="text-2xl font-bold text-orange-500">G-Easy</h3>
+                <img src="{{ url_for('static', filename='images/login-backpack.png') }}" alt="Backpack"
+                     class="w-24 h-auto mx-auto my-3">
+                <p class="text-gray-700 font-semibold">Good Morning!</p>
+                <p class="text-sm text-gray-500">Let's learn English with G-easy every day</p>
+            </div>
+
+            {# Div để hiển thị thông báo lỗi #}
+            <div id="loginModalErrorMessage" class="p-3 mb-4 text-sm text-red-700 bg-red-100 rounded-lg hidden"
+                 role="alert"></div>
+
+            {# Flash messages cho modal (nếu backend redirect về với flash) #}
+            {% with messages = get_flashed_messages(with_categories=true, category_filter=["login_modal_danger",
+            "login_modal_success"]) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="p-3 mb-4 text-sm rounded-lg
+                        {% if category == 'login_modal_danger' %} bg-red-100 text-red-700
+                        {% elif category == 'login_modal_success' %} bg-green-100 text-green-700
+                        {% endif %}" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <form id="loginFormInModal" class="space-y-5"> {# <<< THÊM ID VÀO ĐÂY, bỏ action và method HTML #}
+                <div>
+                    <input type="email" name="email" placeholder="Email" required autocomplete="email"
+                           class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                </div>
+                <div>
+                    <input type="password" name="password" placeholder="Password" required
+                           autocomplete="current-password"
+                           class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                </div>
+                <div class="text-right text-sm"><a href="#" class="font-medium text-orange-600 hover:text-orange-500">Forgot
+                    your password?</a></div>
+                <div class="flex items-center space-x-3">
+                    <a href="{{ url_for('register') }}"
+                       class="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Sign
+                        up</a>
+                    <button type="submit"
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600">
+                        Log in
+                    </button>
+                </div>
+            </form>
+            <p class="mt-6 text-center text-sm text-gray-600">Hoặc đăng nhập với:
+                <a href="{{ url_for('google.login') }}"
+                   class="font-medium text-blue-600 hover:text-blue-500 inline-flex items-center">
+                    <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20"></svg>
+                    Google
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Login Modal JS
+    const loginModal = document.getElementById('loginModal');
+    const modalDialog = document.getElementById('modalDialog');
+    const openLoginModalBtn = document.getElementById('openLoginModalBtn');
+    const closeLoginModalBtn = document.getElementById('closeLoginModalBtn');
+    const loginForm = document.getElementById('loginFormInModal'); // <<< CẦN THÊM ID NÀY VÀO THẺ <form> CỦA LOGIN MODAL
+    const loginModalErrorMessage = document.getElementById('loginModalErrorMessage'); // <<< CẦN THÊM ELEMENT NÀY VÀO LOGIN MODAL ĐỂ HIỂN THỊ LỖI
+
+
+    function openModal() {
+        if (loginModal && modalDialog) {
+            loginModal.classList.remove('hidden', 'opacity-0');
+            document.body.classList.add('modal-active');
+            void modalDialog.offsetWidth;
+            modalDialog.classList.remove('scale-95', 'opacity-0');
+            modalDialog.classList.add('scale-100', 'opacity-100');
+        }
+    }
+
+    function closeModal() {
+        if (loginModal && modalDialog) {
+            modalDialog.classList.remove('scale-100', 'opacity-100');
+            modalDialog.classList.add('scale-95', 'opacity-0');
+            loginModal.classList.add('opacity-0');
+            setTimeout(() => {
+                loginModal.classList.add('hidden');
+                document.body.classList.remove('modal-active');
+            }, 300);
+        }
+    }
+
+    if (openLoginModalBtn) {
+        openLoginModalBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+            openModal();
+        });
+    }
+    if (closeLoginModalBtn) {
+        closeLoginModalBtn.addEventListener('click', closeModal);
+    }
+    if (loginModal) {
+        loginModal.addEventListener('click', function (event) {
+            if (event.target === loginModal) {
+                closeModal();
+            }
+        });
+    }
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && loginModal && !loginModal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', function (event) {
+            event.preventDefault(); // Ngăn form submit theo cách truyền thống
+
+            const formData = new FormData(loginForm);
+            const data = Object.fromEntries(formData.entries());
+
+            if (loginModalErrorMessage) loginModalErrorMessage.classList.add('hidden'); // Ẩn lỗi cũ
+
+            fetch("{{ url_for('login') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Nếu bạn dùng Flask-WTF CSRF, cần thêm X-CSRFToken
+                },
+                body: JSON.stringify(data)
+            })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        // Đăng nhập thành công
+                        // alert(result.message || 'Đăng nhập thành công!'); // Hoặc không cần alert
+                        closeModal();
+                        window.location.reload(); // Tải lại trang để cập nhật trạng thái header và session
+                    } else {
+                        // Đăng nhập thất bại, hiển thị lỗi trong modal
+                        if (loginModalErrorMessage) {
+                            loginModalErrorMessage.textContent = result.message || 'Lỗi không xác định.';
+                            loginModalErrorMessage.classList.remove('hidden');
+                        } else {
+                            alert('Lỗi: ' + (result.message || 'Lỗi không xác định.'));
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error during login AJAX:', error);
+                    if (loginModalErrorMessage) {
+                        loginModalErrorMessage.textContent = 'Lỗi kết nối tới server. Vui lòng thử lại.';
+                        loginModalErrorMessage.classList.remove('hidden');
+                    } else {
+                        alert('Lỗi kết nối tới server. Vui lòng thử lại.');
+                    }
+                });
+        });
+    }
+    // Kiểm tra nếu có tham số URL yêu cầu mở modal (từ redirect của Flask)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('open_login_modal')) {
+        openModal();
+        if (urlParams.has('login_attempt') && loginModalErrorMessage) {
+            // Hiển thị thông báo lỗi cụ thể nếu có (ví dụ: từ việc bị chặn)
+            // Bạn có thể lấy message từ session flash nếu redirect, hoặc từ một param khác
+            // Hiện tại, flash message đã được thiết kế để hiển thị ở base.html,
+            // nên phần này có thể không cần nếu flash message đủ tốt.
+            // Nếu muốn lỗi hiện trong modal, backend cần trả về lỗi cụ thể để JS xử lý.
+            // Hoặc dùng flash category 'login_modal_danger' như đã thiết kế trong modal HTML
+        }
+    }
+
+    // Current Year for Footer
+    document.getElementById('currentYear').textContent = new Date().getFullYear();
+</script>
+{% block scripts_extra %}{% endblock %} {# Cho JS riêng của trang con #}
+
+</body>
+</html>

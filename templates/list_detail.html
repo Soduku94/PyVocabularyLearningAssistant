@@ -1,0 +1,405 @@
+{% extends "base.html" %}
+
+{% block title %}
+{{ current_list.name if current_list else "List Details" }} - G-Easy English
+{% endblock %}
+
+{% block page_content %}
+<div class="bg-white p-6 md:p-8 rounded-lg shadow-lg">
+    {% if current_list %}
+    <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-semibold text-gray-800">{{ current_list.name }}</h1>
+            <p class="text-sm text-gray-500">Created on: {{ current_list.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+        <div>
+            <a href="{{ url_for('my_lists_page') }}" class="text-sm text-orange-600 hover:text-orange-700">&larr; Back
+                to My Lists</a>
+        </div>
+    </div>
+
+    {% if entries %}
+    <div class="space-y-6">
+        {% for entry in entries %} {# <--- VÒNG LẶP BẮT ĐẦU #}
+        {# Tất cả HTML sử dụng 'entry' phải nằm trong này #}
+        <div class="entry-item p-4 border border-gray-200 rounded-md" data-entry-id="{{ entry.id }}"> {# Ví dụ: dòng này
+            đúng vì nằm trong vòng lặp #}
+            <div class="flex justify-between items-start">
+                <div class="flex-grow pr-4">
+                    <h3 class="original-word-display text-xl font-semibold text-orange-600 mb-2">{{ entry.original_word
+                        }}</h3>
+                    <p class="word-type-display text-sm text-gray-500 mb-1"><strong>Type:</strong> {{ entry.word_type if
+                        entry.word_type else 'N/A' }}</p>
+
+                    {% if entry.definition_en %}
+                    <p class="text-sm font-medium text-gray-700 mt-1">English Explanation:</p>
+                    <p class="definition-en-display text-sm text-gray-600 mb-1">{{ entry.definition_en }}</p>
+                    {% endif %}
+
+                    {% if entry.definition_vi %}
+                    <p class="text-sm font-medium text-gray-700 mt-1">Vietnamese Explanation:</p>
+                    <p class="definition-vi-display text-sm text-gray-600 mb-2">{{ entry.definition_vi }}</p>
+                    {% endif %}
+
+                    {% if entry.example_en and entry.example_en != "N/A" %}
+                    <p class="text-sm font-medium text-gray-700 mt-1">Example Sentence (English):</p>
+                    <p class="example-en-display text-sm text-gray-600 italic">{{ entry.example_en }}</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col space-y-2 ml-auto flex-shrink-0 w-32">
+                    <button class="listen-btn w-full text-xs px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center justify-center"
+                            data-word="{{ entry.original_word }}"
+                            data-def-vi="{{ entry.definition_vi if entry.definition_vi else '' }}"
+                            data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}">
+                        <svg></svg>
+                        Listen
+                    </button>
+
+                    <button type="button"
+                            class="user-edit-entry-btn w-full text-xs px-3 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 flex items-center justify-center"
+                            data-entry-id="{{ entry.id }}"
+                            data-original-word="{{ entry.original_word }}"
+                            data-word-type="{{ entry.word_type if entry.word_type else '' }}"
+                            data-def-en="{{ entry.definition_en if entry.definition_en else '' }}"
+                            data-def-vi="{{ entry.definition_vi if entry.definition_vi else '' }}"
+                            data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}">
+                        <svg></svg>
+                        Edit Word
+                    </button>
+
+                    <form method="POST" action="{{ url_for('delete_my_vocab_entry', entry_id=entry.id) }}"
+                          onsubmit="return confirm('Bạn có chắc chắn muốn xóa từ \'{{ entry.original_word }}\' này khỏi danh sách không?');">
+                        <button type="submit"
+                                class="w-full text-xs px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 flex items-center justify-center">
+                            <svg></svg>
+                            Delete Word
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="text-center py-10">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                 aria-hidden="true">
+                <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">This list is currently empty.</h3>
+            <p class="mt-1 text-sm text-gray-500">You can add words through the "Enter new Words" page.</p>
+            <div class="mt-6">
+                <a href="{{ url_for('enter_words_page') }}"
+                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                         fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd"
+                              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                              clip-rule="evenodd"/>
+                    </svg>
+                    Add Words
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <p class="text-red-500">Could not load list details.</p>
+        {% endif %}
+    </div>
+
+    <div id="userEditEntryModal"
+         class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 hidden modal-backdrop opacity-0">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 ease-in-out scale-95 opacity-0"
+             id="userEditEntryDialog">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Edit Vocabulary Entry</h3>
+                <button id="userCloseEditEntryModalBtn" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <form id="userEditEntryForm" class="space-y-4">
+                <input type="hidden" name="entry_id_to_edit" id="user_entry_id_to_edit">
+
+                <div>
+                    <label for="user_edit_original_word" class="block text-sm font-medium text-gray-700">Original Word
+                        (Read-only)</label>
+                    <input type="text" name="original_word" id="user_edit_original_word" readonly
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 sm:text-sm">
+                </div>
+                <div>
+                    <label for="user_edit_word_type" class="block text-sm font-medium text-gray-700">Word Type</label>
+                    <input type="text" name="word_type" id="user_edit_word_type"
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="user_edit_definition_en" class="block text-sm font-medium text-gray-700">English
+                        Explanation</label>
+                    <textarea name="definition_en" id="user_edit_definition_en" rows="3"
+                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea>
+                </div>
+                <div>
+                    <label for="user_edit_definition_vi" class="block text-sm font-medium text-gray-700">Vietnamese
+                        Explanation</label>
+                    <textarea name="definition_vi" id="user_edit_definition_vi" rows="3"
+                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea>
+                </div>
+                <div>
+                    <label for="user_edit_example_en" class="block text-sm font-medium text-gray-700">English Example
+                        Sentence</label>
+                    <textarea name="example_en" id="user_edit_example_en" rows="2"
+                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea>
+                </div>
+
+                <div class="pt-5 sm:flex sm:flex-row-reverse">
+                    <button type="submit" id="userConfirmEditEntryBtn"
+                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-500 text-base font-medium text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm">
+                        Save Changes
+                    </button>
+                    <button type="button" id="userCancelEditEntryModalBtn"
+                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endblock %}
+
+    {% block scripts_extra %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+
+            // --- JavaScript for User Edit Entry Modal ---
+            const userEditEntryModal = document.getElementById('userEditEntryModal');
+            const userEditEntryDialog = document.getElementById('userEditEntryDialog');
+            const openUserEditEntryButtons = document.querySelectorAll('.user-edit-entry-btn');
+            const userCloseEditEntryModalBtn = document.getElementById('userCloseEditEntryModalBtn');
+            const userCancelEditEntryModalBtn = document.getElementById('userCancelEditEntryModalBtn');
+            const userEditEntryForm = document.getElementById('userEditEntryForm');
+
+            const userEntryIdToEditInput = document.getElementById('user_entry_id_to_edit');
+            const userEditOriginalWordInput = document.getElementById('user_edit_original_word');
+            const userEditWordTypeInput = document.getElementById('user_edit_word_type');
+            const userEditDefEnInput = document.getElementById('user_edit_definition_en');
+            const userEditDefViInput = document.getElementById('user_edit_definition_vi');
+            const userEditExampleEnInput = document.getElementById('user_edit_example_en');
+
+            function openUserEditModal(entryData) {
+                if (userEditEntryModal && userEditEntryDialog) {
+                    userEntryIdToEditInput.value = entryData.entryId;
+                    userEditOriginalWordInput.value = entryData.originalWord;
+                    userEditWordTypeInput.value = entryData.wordType;
+                    userEditDefEnInput.value = entryData.defEn;
+                    userEditDefViInput.value = entryData.defVi;
+                    userEditExampleEnInput.value = entryData.exampleEn;
+
+                    userEditEntryModal.classList.remove('hidden', 'opacity-0');
+                    document.body.classList.add('modal-active');
+                    void userEditEntryDialog.offsetWidth;
+                    userEditEntryDialog.classList.remove('scale-95', 'opacity-0');
+                    userEditEntryDialog.classList.add('scale-100', 'opacity-100');
+                }
+            }
+
+            function closeUserEditModal() {
+                if (userEditEntryModal && userEditEntryDialog) {
+                    userEditEntryDialog.classList.remove('scale-100', 'opacity-100');
+                    userEditEntryDialog.classList.add('scale-95', 'opacity-0');
+                    userEditEntryModal.classList.add('opacity-0');
+                    setTimeout(() => {
+                        userEditEntryModal.classList.add('hidden');
+                        document.body.classList.remove('modal-active');
+                    }, 300);
+                }
+            }
+
+            openUserEditEntryButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const entryData = {
+                        entryId: this.dataset.entryId,
+                        originalWord: this.dataset.originalWord,
+                        wordType: this.dataset.wordType,
+                        defEn: this.dataset.defEn,
+                        defVi: this.dataset.defVi,
+                        exampleEn: this.dataset.exampleEn
+                    };
+                    openUserEditModal(entryData);
+                });
+            });
+
+            if (userCloseEditEntryModalBtn) {
+                userCloseEditEntryModalBtn.addEventListener('click', closeUserEditModal);
+            }
+            if (userCancelEditEntryModalBtn) {
+                userCancelEditEntryModalBtn.addEventListener('click', closeUserEditModal);
+            }
+
+            if (userEditEntryForm) {
+                userEditEntryForm.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    const entryId = userEntryIdToEditInput.value;
+                    const payload = {
+                        word_type: userEditWordTypeInput.value.trim(),
+                        definition_en: userEditDefEnInput.value.trim(),
+                        definition_vi: userEditDefViInput.value.trim(),
+                        example_en: userEditExampleEnInput.value.trim()
+                    };
+
+                    const actionUrl = "{{ url_for('edit_my_vocab_entry', entry_id=0) }}".replace('/0', '/' + entryId);
+
+                    fetch(actionUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', /* CSRF Token nếu cần */},
+                        body: JSON.stringify(payload)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                closeUserEditModal();
+                                // Cập nhật UI động hoặc reload để thấy thay đổi
+                                // Để đơn giản, tải lại trang để thấy thay đổi và flash message từ server
+                                window.location.reload();
+                            } else {
+                                alert('Lỗi khi cập nhật từ: ' + (data.message || 'Lỗi không xác định.'));
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating entry:', error);
+                            alert('Đã xảy ra lỗi kết nối khi cập nhật từ.');
+                        });
+                });
+            }
+
+            if (userEditEntryModal) {
+                userEditEntryModal.addEventListener('click', function (event) {
+                    if (event.target === userEditEntryModal) {
+                        closeUserEditModal();
+                    }
+                });
+            }
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && userEditEntryModal && !userEditEntryModal.classList.contains('hidden')) {
+                    closeUserEditModal();
+                }
+            });
+            // --- End of JavaScript for User Edit Entry Modal ---
+
+
+            // --- Định nghĩa các khoảng trễ ---
+            const INTRA_ITEM_SPEECH_DELAY = 750; // Khoảng trễ giữa các phần của một mục (0.75 giây)
+            const INTER_WORD_PLAY_ALL_DELAY = 2500; // Khoảng trễ giữa các TỪ khi Play All (2.5 giây)
+
+            // --- JavaScript for Listen Buttons (cho từng từ) ---
+            const listenButtons = document.querySelectorAll('.listen-btn');
+            listenButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    if (typeof responsiveVoice === 'undefined') {
+                        alert('ResponsiveVoice JS chưa sẵn sàng. Vui lòng kiểm tra lại liên kết thư viện trong base.html hoặc kết nối mạng.');
+                        return;
+                    }
+
+                    const word = this.dataset.word;
+                    const definitionVi = this.dataset.defVi;
+                    const exampleEn = this.dataset.exampleEn;
+
+                    responsiveVoice.cancel();
+                    let textsToPlay = [];
+
+                    if (word && word.trim() !== "") {
+                        textsToPlay.push({text: word, voice: "UK English Male"});
+                    }
+                    if (definitionVi && definitionVi.trim() !== "" && definitionVi.trim().toLowerCase() !== word.trim().toLowerCase()) {
+                        textsToPlay.push({text: definitionVi, voice: "Vietnamese Female"});
+                    }
+                    if (exampleEn && exampleEn.trim() !== "") {
+                        textsToPlay.push({text: exampleEn, voice: "UK English Male"});
+                    }
+
+                    let currentIndex = 0;
+
+                    function playNextInQueue() {
+                        if (currentIndex < textsToPlay.length) {
+                            let currentPlayItem = textsToPlay[currentIndex];
+                            responsiveVoice.speak(currentPlayItem.text, currentPlayItem.voice, {
+                                onend: function () {
+                                    currentIndex++;
+                                    setTimeout(playNextInQueue, INTRA_ITEM_SPEECH_DELAY);
+                                }
+                            });
+                        }
+                    }
+
+                    if (textsToPlay.length > 0) {
+                        playNextInQueue();
+                    } else {
+                        alert("Không có nội dung hợp lệ để đọc.");
+                    }
+                });
+            });
+            // --- End of JavaScript for Listen Buttons ---
+
+
+            // --- JavaScript for Play All Button (Chỉ đọc từ tiếng Anh gốc với khoảng trễ dài hơn) ---
+            const playAllButton = document.getElementById('playAllBtn');
+            if (playAllButton) {
+                playAllButton.addEventListener('click', function () {
+                    if (typeof responsiveVoice === 'undefined') {
+                        alert('ResponsiveVoice JS chưa sẵn sàng. Vui lòng kiểm tra lại liên kết thư viện hoặc kết nối mạng.');
+                        return;
+                    }
+
+                    // Lấy tất cả các nút "Listen" đang hiển thị trên trang này để lấy data-word
+                    const currentListListenButtons = document.querySelectorAll('.listen-btn');
+                    let uniqueWordsToPlay = new Set();
+
+                    currentListListenButtons.forEach(button => {
+                        const word = button.dataset.word;
+                        if (word && word.trim() !== "") {
+                            uniqueWordsToPlay.add(word);
+                        }
+                    });
+
+                    if (uniqueWordsToPlay.size === 0) {
+                        alert('Không có từ nào trong danh sách này để phát âm.');
+                        return;
+                    }
+
+                    responsiveVoice.cancel();
+                    let masterPlayQueue = [];
+                    uniqueWordsToPlay.forEach(word => {
+                        masterPlayQueue.push({text: word, voice: "UK English Male"});
+                    });
+
+                    let currentMasterIndex = 0;
+
+                    function playNextInMasterQueue() {
+                        if (currentMasterIndex < masterPlayQueue.length) {
+                            let currentPlayItem = masterPlayQueue[currentMasterIndex];
+                            console.log("Play All (English words only) - Playing:", currentPlayItem.text);
+                            responsiveVoice.speak(currentPlayItem.text, currentPlayItem.voice, {
+                                onend: function () {
+                                    currentMasterIndex++;
+                                    setTimeout(playNextInMasterQueue, INTER_WORD_PLAY_ALL_DELAY);
+                                }
+                            });
+                        } else {
+                            console.log("Play All (English words only) đã hoàn tất.");
+                        }
+                    }
+
+                    if (masterPlayQueue.length > 0) {
+                        playNextInMasterQueue();
+                    } else {
+                        alert("Không có nội dung hợp lệ để đọc cho Play All.");
+                    }
+                });
+            }
+            // --- End of JavaScript for Play All Button ---
+        });
+    </script>
+    {% endblock %}

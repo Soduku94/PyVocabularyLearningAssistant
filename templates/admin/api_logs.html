@@ -1,0 +1,91 @@
+{# File: templates/admin/api_logs.html #}
+{% extends "base.html" %}
+
+{% block title %}
+    API Call Logs - Admin
+{% endblock %}
+
+{% block page_content %}
+<div class="bg-white p-6 md:p-8 rounded-lg shadow-lg">
+    <div class="mb-8">
+        <h1 class="text-2xl font-semibold text-gray-800">API Call Logs & Statistics</h1>
+    </div>
+
+    <div class="mb-8 p-4 border rounded-md bg-gray-50">
+        <h2 class="text-xl font-semibold text-gray-700 mb-3">Overall Statistics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div class="p-3 bg-blue-100 rounded">
+                <p class="text-sm text-blue-700">Total Calls</p>
+                <p class="text-2xl font-bold text-blue-800">{{ stats.total_calls }}</p>
+            </div>
+            <div class="p-3 bg-green-100 rounded">
+                <p class="text-sm text-green-700">Successful Calls</p>
+                <p class="text-2xl font-bold text-green-800">{{ stats.successful_calls }}</p>
+            </div>
+            <div class="p-3 bg-red-100 rounded">
+                <p class="text-sm text-red-700">Failed Calls</p>
+                <p class="text-2xl font-bold text-red-800">{{ stats.failed_calls }}</p>
+            </div>
+        </div>
+        {% if stats.calls_by_api_name %}
+        <h3 class="text-lg font-semibold text-gray-700 mt-6 mb-2">Calls by API Name:</h3>
+        <ul class="list-disc list-inside text-sm">
+            {% for api_stat in stats.calls_by_api_name %}
+            <li>
+                <strong>{{ api_stat.api_name }}</strong>: 
+                Total: {{ api_stat.count }}, 
+                Successful: <span class="text-green-600">{{ api_stat.successful }}</span>, 
+                Failed: <span class="text-red-600">{{ api_stat.failed }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">Recent API Logs (Last 200)</h2>
+    {% if logs %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-4 py-2 border text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                    <th class="px-4 py-2 border text-left text-xs font-medium text-gray-500 uppercase">API Name</th>
+                    <th class="px-4 py-2 border text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                    <th class="px-4 py-2 border text-left text-xs font-medium text-gray-500 uppercase">Success</th>
+                    <th class="px-4 py-2 border text-left text-xs font-medium text-gray-500 uppercase">Status Code</th>
+                    <th class="px-4 py-2 border text-left text-xs font-medium text-gray-500 uppercase">Request Details</th>
+                    <th class="px-4 py-2 border text-left text-xs font-medium text-gray-500 uppercase">Error Message</th>
+                    <th class="px-4 py-2 border text-left text-xs font-medium text-gray-500 uppercase">User ID</th>
+                </tr>
+            </thead>
+            <tbody class="text-sm">
+                {% for log_entry in logs %}
+                <tr class="hover:bg-gray-50 {% if not log_entry.success %}bg-red-50{% endif %}">
+                    <td class="px-4 py-2 border">{{ log_entry.id }}</td>
+                    <td class="px-4 py-2 border">{{ log_entry.api_name }}</td>
+                    <td class="px-4 py-2 border whitespace-nowrap">{{ log_entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td class="px-4 py-2 border">
+                        {% if log_entry.success %}
+                            <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Yes</span>
+                        {% else %}
+                            <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">No</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2 border">{{ log_entry.status_code if log_entry.status_code else 'N/A' }}</td>
+                    <td class="px-4 py-2 border max-w-xs truncate">{{ log_entry.request_details if log_entry.request_details else 'N/A' }}</td>
+                    <td class="px-4 py-2 border max-w-xs truncate text-red-600">{{ log_entry.error_message if log_entry.error_message else 'N/A' }}</td>
+                    <td class="px-4 py-2 border">{{ log_entry.user_id if log_entry.user_id else 'N/A' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600">No API logs found yet.</p>
+    {% endif %}
+
+    <div class="mt-8">
+        <a href="{{ url_for('admin_dashboard') }}" class="text-sm text-orange-600 hover:text-orange-700">&larr; Back to Admin Dashboard</a>
+    </div>
+</div>
+{% endblock %}

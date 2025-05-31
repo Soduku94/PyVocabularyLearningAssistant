@@ -1,0 +1,104 @@
+{# File: templates/admin/dashboard.html #}
+{% extends "base.html" %}
+
+{% block title %}
+Admin Dashboard - User Management
+{% endblock %}
+
+{% block page_content %}
+<div class="bg-white p-6 md:p-8 rounded-lg shadow-lg">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-semibold text-gray-800">User Management</h1>
+        {# Có thể thêm các nút hành động chung cho admin ở đây sau #}
+    </div>
+
+    {% if users_list and users_list|length > 0 %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200">
+            <thead class="bg-gray-100">
+            <tr>
+                <th class="px-6 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    ID
+                </th>
+                <th class="px-6 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Name
+                </th>
+                <th class="px-6 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Email
+                </th>
+                <th class="px-6 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Is Admin?
+                </th>
+                <th class="px-6 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Google ID
+                </th>
+                <th class="px-6 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Created At
+                </th>
+                <th class="px-4 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Status
+                </th>
+                <th class="px-6 py-3 border-b-2 border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Actions
+                </th>
+            </tr>
+            </thead>
+            <tbody class="text-gray-700">
+            <tbody class="text-gray-700">
+            {% for user_item in users_list %}
+            <tr class="hover:bg-gray-50 {% if user_item.is_blocked %}bg-red-50 opacity-70{% endif %}"> {# Đánh dấu user
+                bị chặn #}
+                <td class="px-4 py-3 whitespace-nowrap border-b border-gray-200 text-sm">{{ user_item.id }}</td>
+                <td class="px-4 py-3 whitespace-nowrap border-b border-gray-200 text-sm">
+                    <a href="{{ url_for('admin_view_user_detail', user_id_to_view=user_item.id) }}"
+                       class="text-blue-600 hover:text-blue-800 hover:underline">
+                        {{ user_item.name if user_item.name else 'N/A' }}
+                    </a>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap border-b border-gray-200 text-sm">{{ user_item.email }}</td>
+                <td class="px-4 py-3 whitespace-nowrap border-b border-gray-200 text-sm">
+                    {% if user_item.is_admin %}
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Yes</span>
+                    {% else %}
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">No</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap border-b border-gray-200 text-sm"> {# <<< HIỂN THỊ TRẠNG THÁI #}
+                    {% if user_item.is_blocked %}
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-200 text-red-800">Blocked</span>
+                    {% else %}
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap border-b border-gray-200 text-sm space-x-2">
+                    <a href="{{ url_for('admin_view_user_detail', user_id_to_view=user_item.id) }}"
+                       class="text-indigo-600 hover:text-indigo-900 text-xs">View</a>
+                    {# Nút Chặn/Bỏ chặn #}
+                    {% if user_info and user_item.id != session.get('db_user_id') and not user_item.is_admin %} {# Admin
+                    không tự chặn mình và không chặn admin khác #}
+                    <form method="POST"
+                          action="{{ url_for('admin_toggle_block_user_route', user_id_to_toggle=user_item.id) }}"
+                          class="inline-block"
+                          onsubmit="return confirm('Bạn có chắc chắn muốn {{ 'bỏ chặn' if user_item.is_blocked else 'chặn' }} người dùng này không?');">
+                        <button type="submit"
+                                class="text-xs px-2 py-1 rounded-md border
+                                                   {% if user_item.is_blocked %}
+                                                       bg-yellow-400 hover:bg-yellow-500 text-white border-yellow-500
+                                                   {% else %}
+                                                       bg-red-500 hover:bg-red-600 text-white border-red-600
+                                                   {% endif %}">
+                            {{ 'Unblock' if user_item.is_blocked else 'Block' }}
+                        </button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600 text-center py-5">No users found in the system.</p>
+    {% endif %}
+</div>
+{% endblock %}
