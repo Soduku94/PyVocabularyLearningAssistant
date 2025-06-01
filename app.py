@@ -8,8 +8,10 @@ from sqlalchemy.sql import case
 from dotenv import load_dotenv  # Thêm dòng này
 from flask_wtf.csrf import CSRFProtect
 from flask_wtf import FlaskForm
-from wtforms import TextAreaField, HiddenField, SubmitField
-from wtforms.validators import DataRequired
+
+from wtforms import TextAreaField, HiddenField, SubmitField, StringField, PasswordField, BooleanField
+
+from wtforms.validators import DataRequired, Email, EqualTo, Length
 
 load_dotenv()
 
@@ -63,6 +65,19 @@ def admin_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+class RegistrationForm(FlaskForm):
+    name = StringField('Họ và Tên', validators=[DataRequired()])
+    email = StringField('Địa chỉ Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Mật khẩu', validators=[DataRequired(), Length(min=6)])
+    confirm_password = PasswordField('Xác nhận Mật khẩu',
+                                     validators=[DataRequired(),
+                                                 EqualTo('password', message='Mật khẩu xác nhận không khớp.')])
+    agree_terms = BooleanField(
+        'Tôi đã đọc và đồng ý với các <a href="..." target="_blank">Điều khoản Dịch vụ</a> và <a href="..." target="_blank">Chính sách Bảo mật</a>.',
+        validators=[DataRequired(message="Bạn phải đồng ý với các điều khoản.")])
+    submit = SubmitField('Đăng ký')
 
 
 def get_current_user_info():
@@ -299,44 +314,76 @@ def logout():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if session.get("db_user_id") or google.authorized:
-        # Nếu dùng AJAX, client sẽ không thấy redirect này trừ khi response là redirect.
-        # Nếu là GET request đến /login khi đã đăng nhập, thì redirect về home.
-        if request.method == 'GET':
-            flash('Đăng nhập thành công!', 'success')
+    print(f"--- Request to /login ---")  # DEBUG
+    print(f"Method: {request.method}")  # DEBUG
+    print(f"Is JSON: {request.is_json}")  # DEBUG
+    if request.is_json:
+        print(
+            f"Request JSON data: {request.get_json(silent=True)}")  # DEBUG, silent=True để không crash nếu không phải JSON
+    else:
+        print(f"Request Form data: {request.form}")  # DEBUG
+        print(f"Request Headers: {request.headers}")  # DEBUG
+    if request.method == 'GET':
+        if session.get("db_user_id") or google.authorized:
             return redirect(url_for('home'))
-        # Nếu là POST (tức là AJAX submit) mà đã đăng nhập, thì không nên xảy ra, nhưng trả về lỗi
-        return jsonify({"success": False, "message": "Bạn đã đăng nhập rồi."}), 400
+        # Nếu chưa đăng nhập và vào /login bằng GET, bạn có thể muốn mở modal trên trang chủ
+        # hoặc nếu bạn có trang login.html riêng biệt thì render nó.
+        # Hiện tại, chúng ta ưu tiên modal trên trang chủ.
+        return redirect(url_for('home', open_login_modal='true'))
 
+        # Xử lý POST request (thường là từ AJAX của login modal)
     if request.method == 'POST':
-        data = request.get_json()  # Nhận dữ liệu JSON từ AJAX
+        # Kiểm tra xem có phải là AJAX request không (client nên gửi Content-Type: application/json)
+        if not request.is_json:
+            print("ERROR: Request POST to /login is not JSON")  # DEBUG
+            # Nếu không phải JSON (ví dụ form HTML submit truyền thống đến đây),
+            # có thể xử lý khác hoặc báo lỗi.
+            # Hiện tại, chúng ta chỉ mong đợi JSON từ modal.
+            return jsonify({"success": False,
+                            "message": "Yêu cầu không hợp lệ. Dữ liệu phải là JSON."}), 415  # Unsupported Media Type
+
+        data = request.get_json()
+        if not data:
+            print("ERROR: No JSON data received in POST to /login")  # DEBUG
+            return jsonify({"success": False, "message": "Không nhận được dữ liệu."}), 400  # Bad Request
+
         email = data.get('email')
         password = data.get('password')
+        print(f"Login attempt for email: {email}")  # DEBUG
 
         if not email or not password:
-            return jsonify({"success": False, "message": "Vui lòng nhập email và mật khẩu."}), 400
+            return jsonify({"success": False, "message": "Vui lòng nhập đầy đủ email và mật khẩu."}), 400
 
         user = User.query.filter_by(email=email).first()
 
-        if user and user.check_password(password):
+        if user and user.password_hash and user.check_password(password):
             if user.is_blocked:
+                print(f"Login FAILED for {email}: Account blocked")  # DEBUG
                 return jsonify({"success": False,
                                 "message": "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."}), 403  # Forbidden
 
+            session.clear()
             session['db_user_id'] = user.id
-            session['user_info'] = {
+            # Tạo user_info cho session từ DB, đảm bảo get_current_user_info() sẽ có is_admin
+            actual_user_info = {
                 'name': user.name,
+                'display_name': user.display_name,
                 'email': user.email,
                 'picture': user.picture_url,
                 'is_admin': user.is_admin
             }
-            return jsonify({"success": True, "message": "Đăng nhập thành công!"})
+            session['user_info'] = actual_user_info
+            print(f"Login SUCCESS for {email}")  # DEBUG
 
+            print(f"User {user.email} đăng nhập bằng form thành công.")  # Debug
+            return jsonify({"success": True, "message": "Đăng nhập thành công!"})  # Status 200 (mặc định)
         else:
+            print(f"Đăng nhập thất bại cho email: {email}")  # Debug
+            print(f"Login FAILED for {email}: Invalid credentials or no password_hash")  # DEBUG
             return jsonify({"success": False, "message": "Email hoặc mật khẩu không đúng."}), 401  # Unauthorized
 
-    # GET request đến /login (ví dụ, gõ trực tiếp URL) sẽ redirect về home, modal sẽ mở bằng JS nếu có param
-    return redirect(url_for('home', open_login_modal='true'))
+    # Trường hợp khác (không phải GET cũng không phải POST hợp lệ)
+    return jsonify({"success": False, "message": "Phương thức không được hỗ trợ."}), 405  # Method Not Allowed
 
 
 # --- Route Đăng ký ---
@@ -1092,6 +1139,7 @@ def profile_page():
                            user_stats=user_dashboard_stats,
                            user_info=base_user_info)
 
+
 @app.route('/admin')
 @app.route('/admin/dashboard')  # Thêm một URL nữa cho dashboard nếu muốn
 @admin_required  # Áp dụng decorator để bảo vệ route này
@@ -1469,39 +1517,44 @@ def edit_my_vocab_entry(entry_id):
 
 
 @app.route('/dashboard')
-# @login_required # Nếu bạn đã tạo decorator này, hãy dùng nó
+# @login_required  # Sử dụng decorator nếu bạn đã tạo, nếu không thì dùng logic session.get("db_user_id")
 def dashboard_page():
-    # 1. Kiểm tra đăng nhập
     current_user_db_id = session.get("db_user_id")
+    # Kiểm tra đăng nhập (nếu không dùng @login_required)
     if not current_user_db_id:
         flash("Vui lòng đăng nhập để truy cập dashboard.", "warning")
-        return redirect(url_for('home', open_login_modal='true'))  # Mở modal login trên trang chủ
+        return redirect(url_for('home', open_login_modal='true'))
 
-    # 2. Lấy thông tin người dùng hiện tại để hiển thị trên trang (ví dụ: avatar ở header)
-    # và để chào mừng
     display_user_info = get_current_user_info()
-    if not display_user_info:  # Trường hợp hiếm gặp nếu session db_user_id có nhưng không lấy được user
+    if not display_user_info:
         flash("Không thể tải thông tin người dùng.", "danger")
         return redirect(url_for('logout'))
 
-    # 3. Lấy các thống kê
+    # Lấy các thống kê
     num_lists = VocabularyList.query.filter_by(user_id=current_user_db_id).count()
-    num_entries = VocabularyEntry.query.filter_by(
-        user_id=current_user_db_id).count()  # Đảm bảo model VocabularyEntry có user_id
+    num_entries = VocabularyEntry.query.filter_by(user_id=current_user_db_id).count()
 
     stats = {
         "num_lists": num_lists,
         "num_entries": num_entries
     }
 
-    # 4. Lấy một vài danh sách gần đây (ví dụ: 3 danh sách) - tùy chọn
+    # Lấy một vài danh sách gần đây (ví dụ: 3 danh sách)
     recent_lists = VocabularyList.query.filter_by(user_id=current_user_db_id).order_by(
         VocabularyList.created_at.desc()).limit(3).all()
 
+    # LẤY CÁC TỪ MỚI THÊM GẦN ĐÂY (ví dụ: 5 từ)
+    recent_entries = VocabularyEntry.query.filter_by(user_id=current_user_db_id).order_by(
+        VocabularyEntry.added_at.desc()).limit(5).all()
+
+    print(
+        f"Dashboard for user {current_user_db_id}: {stats}, {len(recent_lists)} recent lists, {len(recent_entries)} recent entries")  # Debug
+
     return render_template('dashboard.html',
-                           user_info=display_user_info,  # Cho base.html và lời chào
+                           user_info=display_user_info,
                            user_stats=stats,
-                           recent_lists=recent_lists)
+                           recent_lists=recent_lists,
+                           recent_entries=recent_entries)  # <<< THÊM recent_entries
 
 
 @app.route('/profile/update-info', methods=['POST'])
@@ -1535,6 +1588,7 @@ def update_profile_info_route():
         db.session.rollback()
         flash(f"Lỗi khi cập nhật thông tin: {str(e)}", "danger")
     return redirect(url_for('profile_page'))
+
 
 @app.route('/my-lists/<int:list_id_to_delete>/delete', methods=['POST'])
 # @login_required  # Đảm bảo người dùng đã đăng nhập
