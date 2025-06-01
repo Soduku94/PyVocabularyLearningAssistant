@@ -58,6 +58,7 @@ class VocabularyEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     original_word = db.Column(db.String(200), nullable=False)
     word_type = db.Column(db.String(50), nullable=True)  # Loại từ (noun, verb, adj, ...)
+    ipa = db.Column(db.String(100), nullable=True)
     definition_en = db.Column(db.Text, nullable=True)  # Định nghĩa/Giải thích tiếng Anh
     definition_vi = db.Column(db.Text, nullable=True)  # Định nghĩa/Giải thích tiếng Việt
     example_en = db.Column(db.Text, nullable=True)  # Câu ví dụ tiếng Anh

@@ -177,7 +177,7 @@ def home():
                         return redirect(url_for('google_complete_setup_page'))
                     else:  # User đã có google_id và password_hash -> đăng nhập thành công
                         session['db_user_id'] = user.id
-                        display_user_info = get_current_user_info() # Cập nhật lại
+                        display_user_info = get_current_user_info()  # Cập nhật lại
                         flash('Đăng nhập bằng Google thành công!', 'success')  # Có thể thêm flash
                         return redirect(url_for('home'))
             else:  # Không lấy được google_id hoặc email từ Google
@@ -186,6 +186,7 @@ def home():
 
     # Hiển thị trang chủ
     return render_template('index.html', user_info=display_user_info)
+
 
 @app.route('/auth/google/complete-setup', methods=['GET', 'POST'])
 def google_complete_setup_page():
@@ -269,6 +270,7 @@ def google_complete_setup_page():
                            user_info=current_display_user_info,
                            google_user_name=pending_google_user.get('name', 'User'),
                            google_user_email=pending_google_user.get('email'))
+
 
 @app.route('/login-with-google')
 def login_with_google():
@@ -507,12 +509,12 @@ def translate_single_text_libre(text_to_translate, target_lang="vi", source_lang
 
 def get_word_details_dictionaryapi(word):
     DICTIONARY_API_URL = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
-    detailed_entries = []
+    # Sẽ trả về một danh sách CHỈ chứa MỘT dictionary nếu tìm thấy định nghĩa phù hợp
+    # Hoặc danh sách rỗng nếu không.
 
     api_name = "dictionary_api"
     user_id_to_log = session.get("db_user_id")
-    log_entry = APILog(api_name=api_name, request_details=f"Word: {word}", user_id=user_id_to_log,
-                       success=False)  # Mặc định là False
+    log_entry = APILog(api_name=api_name, request_details=f"Word: {word}", user_id=user_id_to_log, success=False)
 
     try:
         response = requests.get(DICTIONARY_API_URL, timeout=15)
@@ -520,154 +522,182 @@ def get_word_details_dictionaryapi(word):
         response.raise_for_status()
         data = response.json()
 
+        # print(f"DEBUG: Dictionary API response for '{word}': {data}")
+
         if isinstance(data, list) and len(data) > 0:
-            for entry_data in data:
-                if entry_data.get("meanings"):
-                    for meaning_obj in entry_data["meanings"]:
-                        part_of_speech = meaning_obj.get("partOfSpeech", "N/A")
-                        if meaning_obj.get("definitions"):
-                            for definition_obj_item in meaning_obj["definitions"]:
-                                definition_en = definition_obj_item.get("definition")
-                                example_en = definition_obj_item.get("example")
+            first_entry_data = data[0]  # Thường API này trả về một mảng với một phần tử chính cho từ đó
 
-                                if definition_en:
-                                    detailed_entries.append({
-                                        "type": part_of_speech,
-                                        "definition_en": definition_en,
-                                        "example_en": example_en if example_en else "N/A"
-                                    })
-                                    log_entry.success = True  # Đánh dấu thành công nếu tìm thấy định nghĩa
-                                    # Chỉ trả về 1 định nghĩa đầu tiên
-                                    # Việc ghi log sẽ diễn ra ở khối finally
-                                    return detailed_entries
+            ipa_text = "N/A"
+            if first_entry_data.get("phonetics"):
+                for phonetic_item in first_entry_data["phonetics"]:
+                    if phonetic_item.get("text"):  # Ưu tiên lấy IPA text
+                        ipa_text = phonetic_item.get("text")
+                        break  # Lấy IPA đầu tiên tìm thấy
 
-                                    # Nếu không có definition_en nào được tìm thấy trong các vòng lặp
-            log_entry.error_message = "No valid definitions found in API response structure."
-            print(f"No definitions with content found for '{word}'.")
+            # Tìm định nghĩa đầu tiên có nội dung và ưu tiên có ví dụ
+            if first_entry_data.get("meanings"):
+                for meaning_obj in first_entry_data["meanings"]:
+                    part_of_speech = meaning_obj.get("partOfSpeech", "N/A")
+                    if meaning_obj.get("definitions"):
+                        # Ưu tiên định nghĩa có ví dụ trước
+                        definition_with_example = None
+                        first_definition_without_example = None
+
+                        for definition_obj_item in meaning_obj["definitions"]:
+                            definition_en = definition_obj_item.get("definition")
+                            example_en = definition_obj_item.get("example")
+
+                            if definition_en:
+                                current_details = {
+                                    "type": part_of_speech,
+                                    "definition_en": definition_en,
+                                    "example_en": example_en if example_en else "N/A",
+                                    "ipa": ipa_text  # Thêm IPA vào đây
+                                }
+                                if example_en:  # Nếu định nghĩa này có ví dụ, chọn nó luôn
+                                    log_entry.success = True
+                                    return [current_details]
+                                if not first_definition_without_example:  # Lưu lại định nghĩa đầu tiên (kể cả không có ví dụ)
+                                    first_definition_without_example = current_details
+
+                        # Nếu không có định nghĩa nào có ví dụ, dùng định nghĩa đầu tiên tìm được
+                        if first_definition_without_example:
+                            log_entry.success = True
+                            return [first_definition_without_example]
+
+            # Nếu không tìm thấy định nghĩa nào trong meanings nhưng có IPA
+            if ipa_text != "N/A":
+                log_entry.success = True  # Coi như thành công nếu lấy được IPA
+                return [{"type": "N/A", "definition_en": "No definition found.", "example_en": "N/A", "ipa": ipa_text}]
+
+            log_entry.error_message = "No valid definitions or IPA found."
+            print(f"No definitions or IPA found for '{word}'.")
         else:
             log_entry.error_message = "No detailed entry found or unexpected format from API."
             print(f"No detailed entry found or unexpected format for '{word}'.")
 
+    # ... (phần except và finally giữ nguyên để ghi log) ...
     except requests.exceptions.Timeout as e:
         log_entry.error_message = f"Timeout: {str(e)}"
-        print(f"Timeout when calling Dictionary API for '{word}'.")
+        # ...
     except requests.exceptions.HTTPError as http_err:
-        # log_entry.status_code đã được set ở trên nếu response nhận được
         log_entry.error_message = f"HTTP Error: {str(http_err)}"
-        print(f"Lỗi HTTP khi gọi Dictionary API cho từ '{word}': {http_err}")
-    except requests.exceptions.RequestException as e:
-        log_entry.error_message = f"Request Error: {str(e)}"
-        print(f"Lỗi Request API cho từ '{word}' với Dictionary API: {e}")
-    except Exception as e:  # Bao gồm lỗi parsing JSON nếu data không phải JSON hợp lệ
+        # ...
+    except Exception as e:
         log_entry.error_message = f"Unexpected Error: {str(e)}"
-        print(f"Lỗi không mong muốn khi lấy chi tiết cho từ '{word}': {e}")
+        # ...
     finally:
-        # Luôn ghi log vào database
         db.session.add(log_entry)
         db.session.commit()
 
-    return detailed_entries
+    return []  # Trả về danh sách rỗng nếu không thành công
 
 
-@app.route('/enter-words', methods=['GET', 'POST'])  # Sửa lại để route này xử lý cả POST cho generate
+# File: app.py
+# ... (các import và hàm translate_with_deep_translator (phiên bản dịch đơn lẻ) của bạn) ...
+
+@app.route('/enter-words', methods=['GET', 'POST'])
 def enter_words_page():
+    # ... (phần code lấy display_user_info, user_lists, target_list_info, input_str giữ nguyên) ...
     display_user_info = get_current_user_info()
-    user_lists = []  # Danh sách hiện có của user (cho modal)
-    target_list_info = None  # Thông tin về list đang được nhắm đến (nếu có)
-
-    # Luôn lấy danh sách list của user nếu đã đăng nhập (cho modal save)
-    if display_user_info and session.get("db_user_id"):
+    user_lists = []
+    target_list_info = None
+    if display_user_info and session.get("db_user_id"):  # ... (logic lấy user_lists) ...
         current_user_db_id = session.get("db_user_id")
         user_lists = VocabularyList.query.filter_by(user_id=current_user_db_id).order_by(
             VocabularyList.name.asc()).all()
-
-    # Xử lý nếu có target_list_id từ URL (khi người dùng nhấn "Add Words" từ my_lists)
-    if request.method == 'GET':
+    if request.method == 'GET':  # ... (logic lấy target_list_info) ...
         target_list_id_from_url = request.args.get('target_list_id', type=int)
-        if target_list_id_from_url and display_user_info:  # Chỉ xử lý nếu user đã login
+        if target_list_id_from_url and display_user_info:
             current_user_db_id = session.get("db_user_id")
-            # Kiểm tra xem list này có thuộc về user không
             list_obj = VocabularyList.query.filter_by(id=target_list_id_from_url, user_id=current_user_db_id).first()
             if list_obj:
                 target_list_info = {"id": list_obj.id, "name": list_obj.name}
-                flash(f"Bạn đang thêm từ vào danh sách: '{list_obj.name}'. Các từ sẽ được lưu vào danh sách này.",
-                      "info")
-            else:
-                flash("Không tìm thấy danh sách được chỉ định hoặc bạn không có quyền.", "warning")
+                flash(f"Bạn đang thêm từ vào danh sách: '{list_obj.name}'. ...", "info")
 
     input_str = request.form.get('words_input', '') if request.method == 'POST' else session.get('last_processed_input',
                                                                                                  '')
     processed_results_dict = {}
 
     if request.method == 'POST':
-        # ... (Toàn bộ logic xử lý POST (Generate) của bạn giữ nguyên như trước) ...
-        # (Lấy words_list, gọi API dịch, API từ điển, xây dựng processed_results_dict)
         session['last_processed_input'] = input_str
         words_list = []
         if input_str:
             words_list = [word.strip() for word in input_str.split(',') if word.strip()]
 
         if words_list:
-            # (Logic gọi API và xây dựng processed_results_dict của bạn ở đây)
-            # Ví dụ:
-            temp_word_details_map = {}
-            all_english_definitions_to_translate = []
-            original_word_for_each_definition = []
+            for original_word in words_list:  # Lặp qua từng từ gốc người dùng nhập
+                print(f"Đang xử lý từ: {original_word}")
+                detailed_entries = get_word_details_dictionaryapi(original_word)  # Trả về list (thường 1 item)
 
-            for original_word in words_list:
-                detailed_entries = get_word_details_dictionaryapi(original_word)
-                temp_word_details_map[original_word] = []
-                if detailed_entries:
-                    for entry in detailed_entries:
-                        all_english_definitions_to_translate.append(entry["definition_en"])
-                        original_word_for_each_definition.append(original_word)
-                        temp_word_details_map[original_word].append(entry)
-                else:
-                    all_english_definitions_to_translate.append(original_word)
-                    original_word_for_each_definition.append(original_word)
-                    temp_word_details_map[original_word].append({
-                        "type": "N/A", "definition_en": original_word, "example_en": "N/A"
-                    })
-
-            translated_definitions_vi = []
-            if all_english_definitions_to_translate:
-                translated_definitions_vi = translate_with_deep_translator(
-                    all_english_definitions_to_translate)  # Giả sử hàm này xử lý batch hoặc list
-
-            translation_idx_counter = 0
-            for original_word in words_list:
                 processed_results_dict[original_word] = []
-                if original_word in temp_word_details_map:
-                    for entry_detail in temp_word_details_map[original_word]:
-                        vietnamese_explanation = "Lỗi dịch hoặc không có định nghĩa."
-                        if translation_idx_counter < len(translated_definitions_vi):
-                            vietnamese_explanation = translated_definitions_vi[translation_idx_counter]
 
-                        processed_results_dict[original_word].append({
-                            "type": entry_detail["type"],
-                            "definition_en": entry_detail["definition_en"],
-                            "definition_vi": vietnamese_explanation,
-                            "example_sentence": entry_detail["example_en"]
-                        })
-                        translation_idx_counter += 1
+                if detailed_entries:  # detailed_entries là list, phần tử đầu tiên là dict định nghĩa
+                    entry_detail = detailed_entries[0]
+
+                    english_definition = entry_detail["definition_en"]
+                    vietnamese_explanation = "Không thể dịch giải thích này."  # Mặc định
+
+                    # Chỉ dịch nếu có định nghĩa tiếng Anh thực sự
+                    if english_definition and english_definition.strip() and english_definition.lower() != "n/a":
+                        # Bỏ qua việc dịch nếu definition_en là chính từ gốc (trường hợp fallback)
+                        # trừ khi bạn muốn dịch cả từ gốc đó ở đây.
+                        if english_definition.lower() != original_word.lower():
+                            print(f"  Đang dịch định nghĩa cho '{original_word}': '{english_definition[:50]}...'")
+                            translated_definition = translate_with_deep_translator(
+                                english_definition)  # Gọi dịch đơn lẻ
+
+                            if translated_definition and translated_definition.strip().lower() != english_definition.strip().lower():
+                                vietnamese_explanation = translated_definition
+                            else:
+                                print(
+                                    f"  Dịch định nghĩa thất bại hoặc không thay đổi cho: '{english_definition[:50]}...'.")
+                        else:  # definition_en chính là original_word (fallback từ dictionary API)
+                            print(f"  Đang dịch từ gốc (fallback) cho '{original_word}': '{original_word}'")
+                            translated_word_meaning = translate_with_deep_translator(original_word)
+                            if translated_word_meaning and translated_word_meaning.strip().lower() != original_word.strip().lower():
+                                vietnamese_explanation = translated_word_meaning  # Hiển thị nghĩa dịch của từ gốc
+                            else:
+                                print(f"  Dịch từ gốc (fallback) thất bại cho '{original_word}'.")
+
+                    processed_results_dict[original_word].append({
+                        "type": entry_detail["type"],
+                        "definition_en": english_definition,
+                        "definition_vi": vietnamese_explanation,
+                        "example_sentence": entry_detail["example_en"],
+                        "ipa": entry_detail.get("ipa", "N/A")
+                    })
+                else:  # Không tìm thấy định nghĩa chi tiết từ Dictionary API, chỉ dịch từ gốc
+                    print(f"  Không có định nghĩa chi tiết, đang dịch từ gốc: '{original_word}'")
+                    vietnamese_translation_of_word = translate_with_deep_translator(original_word)
+                    processed_results_dict[original_word].append({
+                        "type": "N/A",
+                        "definition_en": original_word,
+                        "definition_vi": vietnamese_translation_of_word if (
+                                vietnamese_translation_of_word and vietnamese_translation_of_word.strip().lower() != original_word.strip().lower()) else "Không thể dịch từ này.",
+                        "example_sentence": "N/A",
+                        "ipa": "N/A"
+
+                    })
+                print(f"  Kết quả cho '{original_word}': {processed_results_dict[original_word]}")
+
         elif input_str:
             flash("Vui lòng nhập từ hợp lệ.", "info")
 
-        # Không xóa session input ở đây nếu muốn giữ lại sau khi generate
-        # session.pop('last_processed_input', None) # Tạm thời comment lại
-
-    # Xử lý input_str cho GET request để giữ lại nếu có lỗi POST trước đó
-    if request.method == 'GET' and not target_list_info:  # Chỉ xóa nếu không phải là redirect từ my_lists và không có kết quả cũ
-        input_str_from_session = session.pop('last_processed_input', '')
-        if not input_str:  # Nếu URL không có param (ví dụ, vào thẳng /enter-words)
+    # ... (Phần xử lý session['last_processed_input'] và return render_template) ...
+    if request.method == 'GET' and not target_list_info:
+        input_str_from_session = session.pop('last_processed_input', None)
+        if not input_str and input_str_from_session:
             input_str = input_str_from_session
+    elif request.method == 'POST' and not processed_results_dict and not input_str:
+        session.pop('last_processed_input', None)
 
     return render_template('enter_words.html',
                            user_info=display_user_info,
-                           input_words_str=input_str,  # Giữ lại từ đã nhập
+                           input_words_str=input_str,
                            results=processed_results_dict,
-                           user_existing_lists=user_lists,  # Cho modal save
-                           target_list_info=target_list_info)  # Thông tin list đang nhắm đến
+                           user_existing_lists=user_lists,
+                           target_list_info=target_list_info)
 
 
 @app.route('/save-list', methods=['POST'])  # Đổi tên cho nhất quán với JS: save_list_route
@@ -714,6 +744,7 @@ def save_list_route():  # Đổi tên hàm cho nhất quán
                 word_type=item_data.get('word_type'),
                 definition_en=item_data.get('definition_en'),
                 definition_vi=item_data.get('definition_vi'),
+                ipa=item_data.get('ipa'),
                 example_en=item_data.get('example_en'),
                 user_id=current_user_db_id,  # Luôn gán user_id cho entry
                 vocabulary_list=target_list  # Liên kết với list (mới hoặc đã có)
