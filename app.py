@@ -6,6 +6,10 @@ from flask_sqlalchemy import SQLAlchemy  # <<< THÊM DÒNG NÀY
 from sqlalchemy import func
 from sqlalchemy.sql import case
 from dotenv import load_dotenv  # Thêm dòng này
+from flask_wtf.csrf import CSRFProtect
+from flask_wtf import FlaskForm
+from wtforms import TextAreaField, HiddenField, SubmitField
+from wtforms.validators import DataRequired
 
 load_dotenv()
 
@@ -29,6 +33,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # <<< THÊM: Tắt thông 
 
 db.init_app(app)
 migrate = Migrate(app, db)
+
+csrf = CSRFProtect(app)  # Khởi tạo CSRFProtect
 
 # --- Tạo Google Blueprint với Flask-Dance ---
 google_bp = make_google_blueprint(
@@ -596,112 +602,115 @@ def get_word_details_dictionaryapi(word):
 # File: app.py
 # ... (các import và hàm translate_with_deep_translator (phiên bản dịch đơn lẻ) của bạn) ...
 
+# File: app.py
+
 @app.route('/enter-words', methods=['GET', 'POST'])
 def enter_words_page():
-    # ... (phần code lấy display_user_info, user_lists, target_list_info, input_str giữ nguyên) ...
+    form = GenerateWordsForm()  # Khởi tạo form
     display_user_info = get_current_user_info()
     user_lists = []
     target_list_info = None
-    if display_user_info and session.get("db_user_id"):  # ... (logic lấy user_lists) ...
-        current_user_db_id = session.get("db_user_id")
+    current_user_db_id = session.get("db_user_id")
+
+    if display_user_info and current_user_db_id:
         user_lists = VocabularyList.query.filter_by(user_id=current_user_db_id).order_by(
             VocabularyList.name.asc()).all()
-    if request.method == 'GET':  # ... (logic lấy target_list_info) ...
+
+    # Xử lý target_list_info cho GET request (giữ nguyên logic của bạn)
+    if request.method == 'GET':
         target_list_id_from_url = request.args.get('target_list_id', type=int)
-        if target_list_id_from_url and display_user_info:
-            current_user_db_id = session.get("db_user_id")
+        if target_list_id_from_url and current_user_db_id:
             list_obj = VocabularyList.query.filter_by(id=target_list_id_from_url, user_id=current_user_db_id).first()
             if list_obj:
                 target_list_info = {"id": list_obj.id, "name": list_obj.name}
-                flash(f"Bạn đang thêm từ vào danh sách: '{list_obj.name}'. ...", "info")
+                flash(f"Bạn đang thêm từ vào danh sách: '{list_obj.name}'. Các từ sẽ được lưu vào danh sách này.",
+                      "info")
+                # Truyền target_list_id vào hidden field của form cho lần POST sau
+                form.target_list_id_on_post.data = list_obj.id
+            else:
+                flash("Không tìm thấy danh sách được chỉ định hoặc bạn không có quyền.", "warning")
+                return redirect(url_for('my_lists_page'))
 
-    input_str = request.form.get('words_input', '') if request.method == 'POST' else session.get('last_processed_input',
-                                                                                                 '')
+    input_str = ""  # Sẽ được lấy từ form nếu POST thành công
     processed_results_dict = {}
 
-    if request.method == 'POST':
-        session['last_processed_input'] = input_str
-        words_list = []
-        if input_str:
-            words_list = [word.strip() for word in input_str.split(',') if word.strip()]
+    # Sử dụng form.validate_on_submit() cho POST request
+    if form.validate_on_submit():  # Tự động xử lý CSRF và validators
+        input_str = form.words_input.data
+        session['last_processed_input'] = input_str  # Vẫn lưu session để có thể dùng nếu cần
+
+        # Lấy lại target_list_id từ hidden field của form nếu có
+        target_list_id_from_form = form.target_list_id_on_post.data
+        if target_list_id_from_form and current_user_db_id:
+            list_obj = VocabularyList.query.filter_by(id=target_list_id_from_form, user_id=current_user_db_id).first()
+            if list_obj:
+                target_list_info = {"id": list_obj.id, "name": list_obj.name}
+        elif target_list_info:  # Giữ lại target_list_info từ GET nếu không có từ form (trường hợp hiếm)
+            form.target_list_id_on_post.data = target_list_info.get('id')
+
+        words_list = [word.strip() for word in input_str.split(',') if word.strip()]
 
         if words_list:
-            for original_word in words_list:  # Lặp qua từng từ gốc người dùng nhập
-                print(f"Đang xử lý từ: {original_word}")
-                detailed_entries = get_word_details_dictionaryapi(original_word)  # Trả về list (thường 1 item)
-
+            # (Toàn bộ logic gọi API từ điển, dịch, và xây dựng processed_results_dict của bạn giữ nguyên ở đây)
+            # ...
+            for original_word in words_list:
+                # ... (logic của bạn) ...
+                detailed_entries = get_word_details_dictionaryapi(original_word)
                 processed_results_dict[original_word] = []
-
-                if detailed_entries:  # detailed_entries là list, phần tử đầu tiên là dict định nghĩa
+                if detailed_entries:
                     entry_detail = detailed_entries[0]
-
                     english_definition = entry_detail["definition_en"]
-                    vietnamese_explanation = "Không thể dịch giải thích này."  # Mặc định
-
-                    # Chỉ dịch nếu có định nghĩa tiếng Anh thực sự
+                    vietnamese_explanation = "Không thể dịch giải thích này."
                     if english_definition and english_definition.strip() and english_definition.lower() != "n/a":
-                        # Bỏ qua việc dịch nếu definition_en là chính từ gốc (trường hợp fallback)
-                        # trừ khi bạn muốn dịch cả từ gốc đó ở đây.
                         if english_definition.lower() != original_word.lower():
-                            print(f"  Đang dịch định nghĩa cho '{original_word}': '{english_definition[:50]}...'")
-                            translated_definition = translate_with_deep_translator(
-                                english_definition)  # Gọi dịch đơn lẻ
-
+                            translated_definition = translate_with_deep_translator(english_definition)
                             if translated_definition and translated_definition.strip().lower() != english_definition.strip().lower():
                                 vietnamese_explanation = translated_definition
-                            else:
-                                print(
-                                    f"  Dịch định nghĩa thất bại hoặc không thay đổi cho: '{english_definition[:50]}...'.")
-                        else:  # definition_en chính là original_word (fallback từ dictionary API)
-                            print(f"  Đang dịch từ gốc (fallback) cho '{original_word}': '{original_word}'")
+                        else:
                             translated_word_meaning = translate_with_deep_translator(original_word)
                             if translated_word_meaning and translated_word_meaning.strip().lower() != original_word.strip().lower():
-                                vietnamese_explanation = translated_word_meaning  # Hiển thị nghĩa dịch của từ gốc
-                            else:
-                                print(f"  Dịch từ gốc (fallback) thất bại cho '{original_word}'.")
+                                vietnamese_explanation = translated_word_meaning
 
                     processed_results_dict[original_word].append({
-                        "type": entry_detail["type"],
-                        "definition_en": english_definition,
-                        "definition_vi": vietnamese_explanation,
-                        "example_sentence": entry_detail["example_en"],
+                        "type": entry_detail["type"], "definition_en": english_definition,
+                        "definition_vi": vietnamese_explanation, "example_sentence": entry_detail["example_en"],
                         "ipa": entry_detail.get("ipa", "N/A")
                     })
-                else:  # Không tìm thấy định nghĩa chi tiết từ Dictionary API, chỉ dịch từ gốc
-                    print(f"  Không có định nghĩa chi tiết, đang dịch từ gốc: '{original_word}'")
+                else:
                     vietnamese_translation_of_word = translate_with_deep_translator(original_word)
                     processed_results_dict[original_word].append({
-                        "type": "N/A",
-                        "definition_en": original_word,
+                        "type": "N/A", "definition_en": original_word,
                         "definition_vi": vietnamese_translation_of_word if (
                                 vietnamese_translation_of_word and vietnamese_translation_of_word.strip().lower() != original_word.strip().lower()) else "Không thể dịch từ này.",
-                        "example_sentence": "N/A",
-                        "ipa": "N/A"
-
+                        "example_sentence": "N/A", "ipa": "N/A"
                     })
-                print(f"  Kết quả cho '{original_word}': {processed_results_dict[original_word]}")
-
         elif input_str:
             flash("Vui lòng nhập từ hợp lệ.", "info")
+            # Không cần redirect ở đây nếu form.validate_on_submit() xử lý lỗi validation
+            # Nếu DataRequired của words_input báo lỗi, nó sẽ tự hiển thị lỗi trên form
 
-    # ... (Phần xử lý session['last_processed_input'] và return render_template) ...
-    if request.method == 'GET' and not target_list_info:
-        input_str_from_session = session.pop('last_processed_input', None)
-        if not input_str and input_str_from_session:
-            input_str = input_str_from_session
-    elif request.method == 'POST' and not processed_results_dict and not input_str:
-        session.pop('last_processed_input', None)
+    # Nếu là GET request, và không có input từ session (trang mới hoàn toàn)
+    # hoặc nếu form POST không validate được, lấy lại giá trị input (nếu có) để điền lại form
+    if request.method == 'GET':
+        form.words_input.data = session.pop('last_processed_input', '')
+        if not target_list_info:  # Chỉ xóa target_list_id khỏi session nếu không phải là target list mode
+            session.pop('target_list_id_for_enter_words', None)  # Không cần thiết nếu dùng hidden field
 
     return render_template('enter_words.html',
+                           form=form,  # <<< TRUYỀN FORM VÀO TEMPLATE
                            user_info=display_user_info,
-                           input_words_str=input_str,
+                           input_words_str=form.words_input.data,  # Lấy từ form để giữ giá trị
                            results=processed_results_dict,
                            user_existing_lists=user_lists,
                            target_list_info=target_list_info)
 
 
-@app.route('/save-list', methods=['POST'])  # Đổi tên cho nhất quán với JS: save_list_route
-def save_list_route():  # Đổi tên hàm cho nhất quán
+# File: app.py
+# ... (các import flask, session, flash, jsonify, models User, VocabularyList, VocabularyEntry, db, ...) ...
+
+@app.route('/save-list', methods=['POST'])
+# @login_required # Nếu bạn đã có decorator này
+def save_list_route():
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
         return jsonify({"success": False, "message": "Vui lòng đăng nhập."}), 401
@@ -710,14 +719,15 @@ def save_list_route():  # Đổi tên hàm cho nhất quán
     if not data:
         return jsonify({"success": False, "message": "Không nhận được dữ liệu."}), 400
 
-    vocabulary_items_data = data.get('words')  # JS đang gửi là 'words'
-    list_name_from_input = data.get('list_name')  # Cho list mới
-    existing_list_id = data.get('existing_list_id')  # Cho list đã có
+    vocabulary_items_data = data.get('words')
+    list_name_from_input = data.get('list_name')
+    existing_list_id = data.get('existing_list_id')
 
     if not vocabulary_items_data or not isinstance(vocabulary_items_data, list) or len(vocabulary_items_data) == 0:
         return jsonify({"success": False, "message": "Không có từ vựng nào để lưu."}), 400
 
     target_list = None
+    is_new_list = False
 
     if existing_list_id:
         # Người dùng muốn thêm vào list đã có
@@ -727,38 +737,60 @@ def save_list_route():  # Đổi tên hàm cho nhất quán
                 {"success": False, "message": "Không tìm thấy danh sách hiện có hoặc bạn không có quyền."}), 403
     elif list_name_from_input and list_name_from_input.strip():
         # Người dùng muốn tạo list mới
+        # Kiểm tra xem tên list mới có bị trùng không (cho cùng một user)
+        existing_list_with_same_name = VocabularyList.query.filter_by(user_id=current_user_db_id,
+                                                                      name=list_name_from_input.strip()).first()
+        if existing_list_with_same_name:
+            return jsonify({"success": False,
+                            "message": f"Bạn đã có một danh sách với tên '{list_name_from_input.strip()}'. Vui lòng chọn tên khác."}), 400
+
         target_list = VocabularyList(name=list_name_from_input.strip(), user_id=current_user_db_id)
         db.session.add(target_list)
-        # Cần flush để target_list có ID nếu các entry cần nó ngay lập tức,
-        # nhưng với backref thì SQLAlchemy có thể tự xử lý khi commit.
+        is_new_list = True
+        # ID sẽ được gán sau khi commit hoặc flush
     else:
-        # Không có existing_list_id và cũng không có list_name hợp lệ
         return jsonify({"success": False,
                         "message": "Vui lòng cung cấp tên cho danh sách mới hoặc chọn một danh sách hiện có."}), 400
 
     try:
-        # Thêm các VocabularyEntry
+        # Nếu là list mới, chúng ta cần flush để lấy ID trước khi thêm entry nếu entry cần list_id ngay.
+        # Tuy nhiên, vì chúng ta gán `vocabulary_list=target_list`, SQLAlchemy sẽ xử lý quan hệ.
+        # db.session.flush() # Có thể không cần thiết nếu dùng backref đúng cách
+
         for item_data in vocabulary_items_data:
             new_entry = VocabularyEntry(
                 original_word=item_data.get('original_word'),
                 word_type=item_data.get('word_type'),
                 definition_en=item_data.get('definition_en'),
                 definition_vi=item_data.get('definition_vi'),
-                ipa=item_data.get('ipa'),
+                ipa=item_data.get('ipa'),  # Đảm bảo bạn đã thêm 'ipa' vào payload từ JS
                 example_en=item_data.get('example_en'),
-                user_id=current_user_db_id,  # Luôn gán user_id cho entry
-                vocabulary_list=target_list  # Liên kết với list (mới hoặc đã có)
+                user_id=current_user_db_id,
+                vocabulary_list=target_list
             )
             db.session.add(new_entry)
 
-        db.session.commit()
+        db.session.commit()  # Commit một lần ở cuối
+
+        # Sau khi commit, target_list (nếu là mới) sẽ có ID
+        final_list_id = target_list.id
 
         action_message = f"Đã thêm từ vào danh sách '{target_list.name}'." if existing_list_id else f"Đã tạo và lưu danh sách '{target_list.name}'."
-        return jsonify({"success": True, "message": action_message})
+
+        return jsonify({
+            "success": True,
+            "message": action_message,
+            "list_id": final_list_id,  # Luôn trả về ID của list đã được sử dụng/tạo
+            "is_new_list": is_new_list
+        })
 
     except Exception as e:
         db.session.rollback()
         print(f"Lỗi khi lưu danh sách/từ: {e}")
+        # Trả về thông báo lỗi cụ thể hơn nếu có thể (ví dụ: lỗi unique constraint)
+        if "UNIQUE constraint failed" in str(e):
+            return jsonify({"success": False,
+                            "message": "Có lỗi xảy ra, có thể do tên danh sách đã tồn tại hoặc dữ liệu không hợp lệ."}), 400
         return jsonify({"success": False, "message": f"Lỗi server: {str(e)}"}), 500
 
 
@@ -934,74 +966,131 @@ def delete_entry_route(entry_id):
     return redirect(url_for('list_detail_page', list_id=parent_list_id))
 
 
-# File: app.py
-# ... (các import, models, hàm get_current_user_info, và các route khác của bạn) ...
+class GenerateWordsForm(FlaskForm):
+    words_input = TextAreaField('Enter Words here:', validators=[DataRequired()])
+    target_list_id_on_post = HiddenField()
+    submit = SubmitField('Generate')
+
+
+def calculate_time_difference(start_date):
+    if not start_date:
+        return "N/A"
+    now = datetime.utcnow()
+    delta = now - start_date
+
+    years = delta.days // 365
+    remaining_days = delta.days % 365
+    months = remaining_days // 30
+    days = remaining_days % 30
+
+    parts = []
+    if years > 0:
+        parts.append(f"{years} year{'s' if years > 1 else ''}")
+    if months > 0:
+        parts.append(f"{months} month{'s' if months > 1 else ''}")
+    if days > 0 or (not years and not months):  # Show days if no years/months or if there are leftover days
+        parts.append(f"{days} day{'s' if days > 1 else ''}")
+
+    if not parts:  # Should not happen if start_date is valid
+        return "Just joined!"
+    return ", ".join(parts) + " ago"
+
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile_page():
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
         flash("Vui lòng đăng nhập để xem hồ sơ của bạn.", "warning")
-        return redirect(url_for('home'))
+        return redirect(url_for('home', open_login_modal='true'))  # Gợi ý mở modal login nếu chưa đăng nhập
 
     user = User.query.get(current_user_db_id)
     if not user:
         flash("Không tìm thấy thông tin người dùng.", "danger")
-        session.clear()
+        session.clear()  # Xóa session hỏng
         return redirect(url_for('home'))
 
     if request.method == 'POST':
-        new_password = request.form.get('new_password')
-        confirm_password = request.form.get('confirm_password')
-        current_password_from_form = request.form.get('current_password')  # Lấy mật khẩu hiện tại từ form
+        # Xử lý POST request cho việc đổi/đặt mật khẩu từ modal (AJAX)
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "message": "Dữ liệu không hợp lệ hoặc thiếu."}), 400
 
-        # Biến cờ để kiểm tra xem có nên thực hiện set_password không
+        new_password = data.get('new_password')
+        confirm_password = data.get('confirm_password')
+        current_password_from_form = data.get('current_password')  # Sẽ là None nếu người dùng đang đặt mật khẩu mới
+
+        error_message = None
         can_set_password = False
-        pass
 
-        if user.password_hash:  # Người dùng đã có mật khẩu, nghĩa là họ đang THAY ĐỔI mật khẩu
+        if user.password_hash:  # Người dùng đang THAY ĐỔI mật khẩu hiện có
             if not current_password_from_form:
-                flash("Vui lòng nhập mật khẩu hiện tại của bạn để thay đổi.", "danger")
+                error_message = "Vui lòng nhập mật khẩu hiện tại của bạn."
             elif not user.check_password(current_password_from_form):
-                flash("Mật khẩu hiện tại không đúng.", "danger")
-            else:  # Mật khẩu hiện tại đúng
+                error_message = "Mật khẩu hiện tại không đúng."
+            else:
                 can_set_password = True
-        else:  # Người dùng chưa có mật khẩu (ví dụ: user Google), nghĩa là họ đang ĐẶT mật khẩu mới
+        else:  # Người dùng đang ĐẶT mật khẩu mới (ví dụ: sau khi login Google)
             can_set_password = True
 
-        if can_set_password:
+        if can_set_password and not error_message:
             if not new_password or not confirm_password:
-                flash("Vui lòng nhập mật khẩu mới và xác nhận mật khẩu.", "danger")
+                error_message = "Vui lòng nhập mật khẩu mới và xác nhận mật khẩu."
             elif len(new_password) < 6:
-                flash("Mật khẩu mới phải có ít nhất 6 ký tự.", "danger")
+                error_message = "Mật khẩu mới phải có ít nhất 6 ký tự."
             elif new_password != confirm_password:
-                flash("Mật khẩu mới và xác nhận mật khẩu không khớp.", "danger")
+                error_message = "Mật khẩu mới và xác nhận mật khẩu không khớp."
             else:
                 try:
-                    user.set_password(new_password)
+                    user.set_password(new_password)  # Hàm này sẽ hash mật khẩu
+                    # Cập nhật cả display_name nếu nó được gửi từ một form khác trên cùng trang profile
+                    # Tuy nhiên, chúng ta đã có route /profile/update-info riêng cho display_name
                     db.session.commit()
-                    flash("Đã cập nhật mật khẩu thành công!", "success")
-                    print(f"User {user.email} đã cập nhật mật khẩu.")  # Debug
+
+                    # Cập nhật lại thông tin trong session['user_info'] nếu cần, đặc biệt là 'has_password'
+                    # (Mặc dù reload trang sau đó sẽ tự làm điều này qua get_current_user_info)
+                    if 'user_info' in session and session['user_info'] is not None:
+                        session['user_info']['has_password'] = True  # Giả sử user_info có key này
+                        session.modified = True
+
+                    # flash("Đã cập nhật mật khẩu thành công!", "success") # Flash sẽ hiển thị sau khi reload trang
+                    print(f"User {user.email} đã cập nhật/đặt mật khẩu.")  # Debug
+                    return jsonify({"success": True, "message": "Đã cập nhật/đặt mật khẩu thành công!"})
                 except Exception as e:
                     db.session.rollback()
-                    flash(f"Có lỗi xảy ra khi cập nhật mật khẩu: {str(e)}", "danger")
+                    error_message = f"Có lỗi xảy ra khi cập nhật mật khẩu: {str(e)}"
                     print(f"Lỗi khi user {user.email} cập nhật mật khẩu: {e}")
 
-        return redirect(url_for('profile_page'))
+        # Nếu có lỗi validation trong quá trình xử lý POST từ AJAX
+        if error_message:
+            return jsonify({"success": False, "message": error_message}), 400  # 400 Bad Request
 
-    display_user_info_for_profile = {  # <<< BẠN CẦN CÓ DÒNG NÀY
+    # Xử lý cho GET request (hiển thị trang profile)
+    num_lists = VocabularyList.query.filter_by(user_id=user.id).count()
+    num_entries = VocabularyEntry.query.filter_by(user_id=user.id).count()
+    time_with_us_str = calculate_time_difference(user.created_at)
+
+    user_profile_data = {
         "name": user.name,
         "display_name": user.display_name,
         "email": user.email,
         "picture": user.picture_url,
-        "has_password": bool(user.password_hash),
-        "google_id": user.google_id
+        "has_password": bool(user.password_hash),  # Quan trọng cho việc hiển thị form trong modal
+        "google_id": user.google_id,
+        "created_at": user.created_at,
+        "time_with_us": time_with_us_str
     }
 
-    return render_template('profile.html',
-                           user_profile_info=display_user_info_for_profile,
-                           user_info=get_current_user_info())  # user_info cho base.html
+    user_dashboard_stats = {
+        "num_lists": num_lists,
+        "num_entries": num_entries
+    }
 
+    base_user_info = get_current_user_info()  # Lấy thông tin cho base.html
+
+    return render_template('profile.html',
+                           user_profile_info=user_profile_data,
+                           user_stats=user_dashboard_stats,
+                           user_info=base_user_info)
 
 @app.route('/admin')
 @app.route('/admin/dashboard')  # Thêm một URL nữa cho dashboard nếu muốn
@@ -1430,35 +1519,89 @@ def update_profile_info_route():
 
     new_display_name = request.form.get('display_name', '').strip()
 
-    # Validate display_name (ví dụ: không quá dài)
     if len(new_display_name) > 100:
         flash("Tên hiển thị quá dài (tối đa 100 ký tự).", "danger")
         return redirect(url_for('profile_page'))
 
-    # Nếu người dùng không nhập gì, có thể giữ tên cũ hoặc xóa display_name để dùng name gốc
-    # Ở đây, nếu họ gửi chuỗi rỗng, ta có thể đặt display_name là None
     user_to_update.display_name = new_display_name if new_display_name else None
-    # Hoặc, nếu muốn giữ tên cũ nếu input rỗng:
-    # if new_display_name:
-    # user_to_update.display_name = new_display_name
-
     try:
         db.session.commit()
         flash("Đã cập nhật thông tin hồ sơ thành công!", "success")
-        # Cập nhật lại user_info trong session nếu display_name ảnh hưởng đến nó
         if 'user_info' in session and session['user_info'] is not None:
-            session['user_info'][
-                'name'] = new_display_name if new_display_name else user_to_update.name  # Hiển thị display_name hoặc name gốc
+            session['user_info']['name'] = new_display_name if new_display_name else user_to_update.name
             session['user_info']['display_name'] = new_display_name if new_display_name else None
-            # Đánh dấu session đã được sửa đổi để Flask lưu lại
             session.modified = True
-
     except Exception as e:
         db.session.rollback()
         flash(f"Lỗi khi cập nhật thông tin: {str(e)}", "danger")
-        print(f"Lỗi khi user {user_to_update.email} cập nhật display_name: {e}")
-
     return redirect(url_for('profile_page'))
+
+@app.route('/my-lists/<int:list_id_to_delete>/delete', methods=['POST'])
+# @login_required  # Đảm bảo người dùng đã đăng nhập
+def delete_my_list(list_id_to_delete):
+    current_user_db_id = session.get("db_user_id")
+    if not current_user_db_id:  # Kiểm tra thêm nếu @login_required không đủ hoặc có lỗi
+        flash("Please log in to manage your lists.", "warning")
+        return redirect(url_for('login_page'))  # Hoặc home nếu bạn muốn họ ở lại trang chủ
+
+    list_to_delete = VocabularyList.query.get_or_404(list_id_to_delete)
+
+    # Kiểm tra quyền sở hữu
+    if list_to_delete.user_id != current_user_db_id:
+        flash("You do not have permission to delete this list.", "danger")
+        return redirect(url_for('my_lists_page'))
+
+    try:
+        db.session.delete(list_to_delete)  # Cascade delete sẽ xóa các VocabularyEntry liên quan
+        db.session.commit()
+        flash(f"Vocabulary list '{list_to_delete.name}' and all its words have been deleted successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred while trying to delete the list: {str(e)}", "danger")
+        print(f"Error deleting list {list_id_to_delete} for user {current_user_db_id}: {e}")
+
+    return redirect(url_for('my_lists_page'))
+
+
+@app.route('/my-lists/<int:list_id>/rename-ajax', methods=['POST'])  # Đổi tên route để rõ là AJAX
+# @login_required
+def rename_my_list_ajax(list_id):
+    current_user_db_id = session.get("db_user_id")
+    list_to_rename = VocabularyList.query.get_or_404(list_id)
+
+    if list_to_rename.user_id != current_user_db_id:
+        return jsonify({"success": False, "message": "You do not have permission to rename this list."}), 403
+
+    data = request.get_json()
+    if not data or 'new_list_name' not in data:
+        return jsonify({"success": False, "message": "New list name not provided."}), 400
+
+    new_name = data.get('new_list_name', '').strip()
+
+    if not new_name:
+        return jsonify({"success": False, "message": "List name cannot be empty."}), 400
+    if len(new_name) > 100:  # Ví dụ giới hạn độ dài
+        return jsonify({"success": False, "message": "List name is too long (max 100 characters)."}), 400
+
+    # Kiểm tra xem tên mới có trùng với list khác của user không
+    existing_list_with_new_name = VocabularyList.query.filter(
+        VocabularyList.user_id == current_user_db_id,
+        VocabularyList.name == new_name,
+        VocabularyList.id != list_id  # Loại trừ list hiện tại
+    ).first()
+
+    if existing_list_with_new_name:
+        return jsonify({"success": False, "message": f"A list with the name '{new_name}' already exists."}), 400
+
+    try:
+        list_to_rename.name = new_name
+        db.session.commit()
+        # Không cần flash ở đây vì AJAX sẽ xử lý hiển thị thông báo
+        return jsonify({"success": True, "message": "List renamed successfully.", "new_name": new_name})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error renaming list {list_id} for user {current_user_db_id}: {e}")
+        return jsonify({"success": False, "message": "An error occurred while renaming the list."}), 500
 
 
 if __name__ == '__main__':

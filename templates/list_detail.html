@@ -5,164 +5,142 @@
 {% endblock %}
 
 {% block page_content %}
-    <div class="space-y-6">
-        {% if current_list %}
-            {# Breadcrumbs và Nút Play All #}
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <nav aria-label="breadcrumb">
-                    <ol class="flex items-center space-x-2 text-sm text-gray-500">
-                        <li><a href="{{ url_for('my_lists_page') }}" class="hover:text-orange-600">My Lists</a></li>
-                        <li>
-                            <svg class="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd"
-                                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                                      clip-rule="evenodd"/>
-                            </svg>
-                        </li>
-                        <li class="font-medium text-gray-700 truncate" aria-current="page"
-                            title="{{ current_list.name }}">
-                            {{ current_list.name }}
-                        </li>
-                    </ol>
-                </nav>
+    <div class="space-y-8"> {# Thêm space-y-8 cho khoảng cách giữa các section lớn #}
+    {% if current_list %}
+        {# SECTION 1: Header của trang (Breadcrumbs và các nút hành động cho List) #}
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-gray-200">
+            <nav aria-label="breadcrumb" class="flex-grow mb-4 sm:mb-0">
+                <ol class="flex items-center space-x-2 text-sm text-gray-500">
+                    <li><a href="{{ url_for('my_lists_page') }}" class="hover:text-orange-600">My Lists</a></li>
+                    <li>
+                        <svg class="h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                  clip-rule="evenodd"/>
+                        </svg>
+                    </li>
+                    <li class="font-medium text-gray-800 text-xl md:text-2xl truncate" aria-current="page" title="{{ current_list.name }}">
+                        {{ current_list.name }}
+                    </li>
+                </ol>
+                <p class="text-xs text-gray-500 mt-1">Created on: {{ current_list.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            </nav>
+
+            {# Các nút hành động cho List (Add Words, Play All) #}
+            <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-shrink-0">
+                <a href="{{ url_for('enter_words_page', target_list_id=current_list.id) }}"
+                   class="w-full sm:w-auto order-last sm:order-none px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-green-600 inline-flex items-center justify-center">
+                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                    Add Words
+                </a>
                 {% if entries and entries|length > 0 %}
                     <button type="button" id="playAllBtn"
-                            class="w-full sm:w-auto px-6 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 inline-flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
-                             fill="currentColor">
-                            <path fill-rule="evenodd"
-                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                                  clip-rule="evenodd"/>
+                            class="w-full sm:w-auto px-5 py-2.5 bg-orange-500 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 inline-flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/>
                         </svg>
                         Play All (Words)
                     </button>
                 {% endif %}
             </div>
+        </div> {# Kết thúc div flex của header trang #}
 
-            {# Danh sách các từ vựng #}
-            {% if entries %}
-                <div class="space-y-6">
-                    {% for entry in entries %}
-                        <div class="entry-item p-4 border border-gray-200 rounded-md" data-entry-id="{{ entry.id }}">
-                            <div class="flex justify-between items-start">
-                                <div class="flex-grow pr-4">
-                                    <h3 class="original-word-display text-xl font-semibold text-orange-600 mb-2">{{ entry.original_word }}</h3>
+        {# SECTION 2: Danh sách các từ vựng #}
+        {% if entries and entries|length > 0 %}
+            <div class="space-y-6">
+                {% for entry in entries %}
+                    <div class="entry-item bg-white p-5 md:p-6 rounded-lg shadow-md" data-entry-id="{{ entry.id }}"> {# Thêm bg-white và shadow cho mỗi entry card #}
+                        <div class="flex flex-col md:flex-row justify-between items-start gap-4">
+                            <div class="flex-grow">
+                                <h3 class="original-word-display text-2xl font-bold text-orange-600 mb-2">{{ entry.original_word }}</h3>
+                                {% if entry.ipa and entry.ipa != "N/A" %}
+                                <p class="text-sm text-purple-600 mb-2 italic">/{{ entry.ipa }}/</p>
+                                {% endif %}
+                                <p class="word-type-display text-sm text-gray-600 mb-1"><strong>Type:</strong> {{ entry.word_type if entry.word_type else 'N/A' }}</p>
 
-                                    {# PHIÊN ÂM IPA (Sẽ thêm sau) #}
-                                    {# <p class="text-sm text-gray-500 mb-1"><strong>IPA:</strong> /ˌkɒn.sɪˈdeɪ.ʃən/ </p> #}
+                                {% if entry.example_en and entry.example_en != "N/A" %}
+                                    <p class="text-sm font-medium text-gray-800 mt-3 mb-1">Example Sentence (English):</p>
+                                    <p class="example-en-display text-sm text-gray-700 italic mb-2">{{ entry.example_en }}</p>
+                                {% endif %}
 
-                                    <p class="word-type-display text-sm text-gray-500 mb-1">
-                                        <strong>Type:</strong> {{ entry.word_type if entry.word_type else 'N/A' }}</p>
+                                {% if entry.definition_en %}
+                                    <p class="text-sm font-medium text-gray-800 mt-3 mb-1">English Explanation:</p>
+                                    <p class="definition-en-display text-sm text-gray-700 mb-1">{{ entry.definition_en }}</p>
+                                {% endif %}
 
-                                    {% if entry.example_en and entry.example_en != "N/A" %}
-                                        <p class="text-sm font-medium text-gray-700 mt-2 mb-1">Example Sentence
-                                            (English):</p>
-                                        <p class="example-en-display text-sm text-gray-600 italic mb-2">{{ entry.example_en }}</p>
-                                    {% endif %}
-
-                                    {% if entry.definition_en %}
-                                        <p class="text-sm font-medium text-gray-700 mt-2 mb-1">English Explanation:</p>
-                                        <p class="definition-en-display text-sm text-gray-600 mb-1">{{ entry.definition_en }}</p>
-                                    {% endif %}
-
-                                    {% if entry.definition_vi %}
-                                        <p class="text-sm font-medium text-gray-700 mt-2 mb-1">Vietnamese
-                                            Explanation:</p>
-                                        <p class="definition-vi-display text-sm text-gray-600 mb-2">{{ entry.definition_vi }}</p>
-                                    {% endif %}
-                                </div>
-                                <div class="flex flex-col sm:flex-row sm:items-start gap-2 mt-4 sm:mt-0 flex-shrink-0">
-                                    <button class="listen-btn w-full sm:w-auto text-xs px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center justify-center"
-                                            data-word="{{ entry.original_word }}"
-                                            data-def-vi="{{ entry.definition_vi if entry.definition_vi else '' }}"
-                                            data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}">
-                                        <svg class="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd"
-                                                  d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 11-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z"
-                                                  clip-rule="evenodd"/>
-                                        </svg>
-                                        Listen
+                                {% if entry.definition_vi %}
+                                    <p class="text-sm font-medium text-gray-800 mt-3 mb-1">Vietnamese Explanation:</p>
+                                    <p class="definition-vi-display text-sm text-gray-700 mb-2">{{ entry.definition_vi }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="flex flex-row sm:flex-col items-start gap-2 mt-4 md:mt-0 flex-shrink-0 w-full md:w-auto md:max-w-xs"> {# Các nút sẽ xếp hàng ngang trên mobile, cột trên sm trở lên #}
+                                <button class="listen-btn w-full md:w-auto text-xs px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center justify-center"
+                                        data-word="{{ entry.original_word }}"
+                                        data-def-vi="{{ entry.definition_vi if entry.definition_vi else '' }}"
+                                        data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}">
+                                    <svg class="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 11-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                                    Listen
+                                </button>
+                                <button type="button"
+                                        class="user-edit-entry-btn w-full md:w-auto text-xs px-4 py-2 bg-yellow-400 text-gray-800 rounded-md hover:bg-yellow-500 flex items-center justify-center"
+                                        data-entry-id="{{ entry.id }}"
+                                        data-original-word="{{ entry.original_word }}"
+                                        data-word-type="{{ entry.word_type if entry.word_type else '' }}"
+                                        data-def-en="{{ entry.definition_en if entry.definition_en else '' }}"
+                                        data-def-vi="{{ entry.definition_vi if entry.definition_vi else '' }}"
+                                        data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}">
+                                    <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    Edit
+                                </button>
+                                <form method="POST" class="w-full md:w-auto"
+                                      action="{{ url_for('delete_my_vocab_entry', entry_id=entry.id) }}"
+                                      onsubmit="return confirm('Delete \'{{ entry.original_word }}\' from this list?');">
+                                    <button type="submit"
+                                            class="w-full text-xs px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center justify-center">
+                                        <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        Delete
                                     </button>
-                                    <button type="button"
-                                            class="user-edit-entry-btn w-full sm:w-auto text-xs px-4 py-2 bg-yellow-400 text-gray-800 rounded-md hover:bg-yellow-500 flex items-center justify-center"
-                                            data-entry-id="{{ entry.id }}"
-                                            data-original-word="{{ entry.original_word }}"
-                                            data-word-type="{{ entry.word_type if entry.word_type else '' }}"
-                                            data-def-en="{{ entry.definition_en if entry.definition_en else '' }}"
-                                            data-def-vi="{{ entry.definition_vi if entry.definition_vi else '' }}"
-                                            data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}">
-                                        <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"
-                                             stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
-                                        Edit
-                                    </button>
-                                    <form method="POST" class="w-full sm:w-auto"
-                                          action="{{ url_for('delete_my_vocab_entry', entry_id=entry.id) }}"
-                                          onsubmit="return confirm('Delete \'{{ entry.original_word }}\' from this list?');">
-                                        <button type="submit"
-                                                class="w-full text-xs px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center justify-center">
-                                            <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"
-                                                 stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                            </svg>
-                                            Delete
-                                        </button>
-                                    </form>
-                                </div>
+                                </form>
                             </div>
                         </div>
-                    {% endfor %}
-                </div>
-
-                {# Nút Edit List (toàn bộ list) #}
-                <div class="mt-10 text-center">
-                    <button type="button"
-                            class="rename-list-btn px-8 py-3 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 transition duration-300 ease-in-out transform hover:scale-105"
-                            data-list-id="{{ current_list.id }}"
-                            data-current-name="{{ current_list.name }}">
-                        Edit List Name
-                    </button>
-                </div>
-
-            {% else %}
-                {# ... (Phần thông báo khi list rỗng, có thể copy từ phiên bản trước của list_detail.html) ... #}
-                <div class="text-center py-10">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                         aria-hidden="true">
-                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"
-                              stroke-width="2"
-                              d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                    </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">This list is currently empty.</h3>
-                    <p class="mt-1 text-sm text-gray-500">You can add words through the "Enter new Words" page.</p>
-                    <div class="mt-6">
-                        <a href="{{ url_for('enter_words_page', target_list_id=current_list.id if current_list else '') }}"
-                           class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-                            <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
-                                 fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd"
-                                      d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                                      clip-rule="evenodd"/>
-                            </svg>
-                            Add Words to This List
-                        </a>
                     </div>
-                </div>
-            {% endif %}
-
-        {% else %}
-            <p class="text-red-500 text-center">Could not load list details.</p>
-            <div class="mt-8">
-                <a href="{{ url_for('my_lists_page') }}" class="text-sm text-orange-600 hover:text-orange-700">&larr;
-                    Back to My Lists</a>
+                {% endfor %}
             </div>
-        {% endif %}
-    </div>
+        {% elif not entries and current_list %} {# Đã có list nhưng list rỗng #}
+            <div class="text-center py-10 bg-white rounded-lg shadow-md">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">This list '{{ current_list.name }}' is currently empty.</h3>
+                <p class="mt-1 text-sm text-gray-500">You can add words using the button above or from the "Enter new Words" page.</p>
+                <div class="mt-6">
+                    <a href="{{ url_for('enter_words_page', target_list_id=current_list.id) }}"
+                       class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+                        Add Words to This List
+                    </a>
+                </div>
+            </div>
+        {% endif %} {# Kết thúc if entries #}
 
-
+        {# Nút Edit List Name (toàn bộ list) #}
+        <div class="mt-10 text-center">
+            <button type="button"
+                    class="rename-list-btn px-8 py-3 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 transition duration-300 ease-in-out transform hover:scale-105"
+                    data-list-id="{{ current_list.id }}"
+                    data-current-name="{{ current_list.name }}">
+                Edit List Name
+            </button>
+        </div>
+    {% else %}
+        <p class="text-red-500 text-center">Could not load list details.</p>
+        <div class="mt-8">
+            <a href="{{ url_for('my_lists_page') }}" class="text-sm text-orange-600 hover:text-orange-700">&larr; Back to My Lists</a>
+        </div>
+    {% endif %} {# Kết thúc if current_list #}
+</div>
 
     <div id="userEditEntryModal"
          class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 hidden modal-backdrop opacity-0">
@@ -223,11 +201,47 @@
             </form>
         </div>
     </div>
+
+    <div id="renameListModal"
+         class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 hidden modal-backdrop opacity-0">
+        <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0"
+             id="renameListModalDialog">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">Rename Vocabulary List</h3>
+                <button type="button" id="closeRenameListModalBtn" class="text-gray-400 hover:text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <form id="renameListFormModal">
+                <input type="hidden" id="renameListIdModalInput" name="list_id">
+                <div>
+                    <label for="newListNameModalInput" class="block text-sm font-medium text-gray-700 mb-1">New list
+                        name:</label>
+                    <input type="text" name="new_list_name" id="newListNameModalInput" required
+                           class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" id="cancelRenameListModalBtn"
+                            class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-5 py-2.5 text-sm font-medium text-white bg-orange-500 rounded-lg shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}
 
 {% block scripts_extra %}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+
             // --- JavaScript for User Edit Entry Modal ---
             const userEditEntryModal = document.getElementById('userEditEntryModal');
             const userEditEntryDialog = document.getElementById('userEditEntryDialog');
@@ -304,12 +318,11 @@
                         example_en: userEditExampleEnInput.value.trim()
                     };
 
-                    // Đảm bảo route 'edit_my_vocab_entry' đã được định nghĩa trong app.py
                     const actionUrl = "{{ url_for('edit_my_vocab_entry', entry_id=0) }}".replace('/0', '/' + entryId);
 
                     fetch(actionUrl, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json' /*, CSRF Token nếu cần */},
+                        headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(payload)
                     })
                         .then(response => {
@@ -323,7 +336,6 @@
                         .then(data => {
                             if (data.success) {
                                 closeUserEditModal();
-                                // alert(data.message || 'Cập nhật thành công!'); // Có thể dùng flash từ server khi reload
                                 window.location.reload();
                             } else {
                                 alert('Lỗi khi cập nhật từ: ' + (data.message || 'Lỗi không xác định.'));
@@ -349,6 +361,128 @@
                 }
             });
             // --- End of JavaScript for User Edit Entry Modal ---
+
+            // --- JavaScript for Rename List Modal (trên trang này) ---
+            const renameListModal = document.getElementById('renameListModal'); // ID của modal đổi tên list
+            const renameListModalDialog = document.getElementById('renameListModalDialog'); // ID của dialog trong modal
+            const renameListFormModal = document.getElementById('renameListFormModal'); // ID của form trong modal
+            const renameListIdInput = document.getElementById('renameListIdModalInput'); // ID của hidden input chứa list_id
+            const newListNameInput = document.getElementById('newListNameModalInput');   // ID của input nhập tên mới
+            const openRenameListButtonsOnDetailPage = document.querySelectorAll('.rename-list-btn'); // Sử dụng class của nút "Edit List Name"
+            const closeRenameListModalBtnOnDetailPage = document.getElementById('closeRenameListModalBtn'); // ID của nút X trên modal đổi tên
+            const cancelRenameListModalBtnOnDetailPage = document.getElementById('cancelRenameListModalBtn'); // ID của nút Cancel trong form đổi tên
+
+            function openRenameListModal() { // Đổi tên hàm cho rõ ràng hơn
+                if (renameListModal && renameListModalDialog) {
+                    renameListModal.classList.remove('hidden', 'opacity-0');
+                    document.body.classList.add('modal-active');
+                    void renameListModalDialog.offsetWidth;
+                    renameListModalDialog.classList.remove('scale-95', 'opacity-0');
+                    renameListModalDialog.classList.add('scale-100', 'opacity-100');
+                }
+            }
+
+            function closeRenameListModal() { // Đổi tên hàm
+                if (renameListModal && renameListModalDialog) {
+                    renameListModalDialog.classList.remove('scale-100', 'opacity-100');
+                    renameListModalDialog.classList.add('scale-95', 'opacity-0');
+                    renameListModal.classList.add('opacity-0');
+                    setTimeout(() => {
+                        renameListModal.classList.add('hidden');
+                        document.body.classList.remove('modal-active');
+                    }, 300);
+                }
+            }
+
+            openRenameListButtonsOnDetailPage.forEach(button => {
+                button.addEventListener('click', function () {
+                    const listId = this.dataset.listId;
+                    const currentName = this.dataset.currentName;
+                    if (renameListIdInput) renameListIdInput.value = listId;
+                    if (newListNameInput) {
+                        newListNameInput.value = currentName;
+                        newListNameInput.focus();
+                    }
+                    openRenameListModal();
+                });
+            });
+
+            if (closeRenameListModalBtnOnDetailPage) closeRenameListModalBtnOnDetailPage.addEventListener('click', closeRenameListModal);
+            if (cancelRenameListModalBtnOnDetailPage) cancelRenameListModalBtnOnDetailPage.addEventListener('click', closeRenameListModal);
+
+            if (renameListModal) {
+                renameListModal.addEventListener('click', function (event) {
+                    if (event.target === renameListModal) {
+                        closeRenameListModal();
+                    }
+                });
+            }
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && renameListModal && !renameListModal.classList.contains('hidden')) {
+                    closeRenameListModal();
+                }
+            });
+
+            if (renameListFormModal) {
+                renameListFormModal.addEventListener('submit', function (event) {
+                    event.preventDefault();
+                    const listId = renameListIdInput.value;
+                    const newListName = newListNameInput.value.trim();
+
+                    if (!newListName) {
+                        alert('List name cannot be empty.');
+                        return;
+                    }
+                    // Tạo URL động cho fetch, đảm bảo 'rename_my_list_ajax' là tên endpoint đúng
+                    const actionUrl = `{{ url_for('rename_my_list_ajax', list_id=0) }}`.replace('/0', '/' + listId);
+                    fetch(actionUrl, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json',},
+                        body: JSON.stringify({new_list_name: newListName})
+                    })
+                        .then(response => { /* ... (xử lý response như cũ) ... */
+                            if (!response.ok) {
+                                return response.json().then(err => {
+                                    throw err;
+                                });
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                closeRenameListModal();
+                                // Cập nhật tên list trên trang hiện tại
+                                const listNameDisplay = document.querySelector('h1.text-2xl.md\\:text-3xl.font-semibold.text-gray-800'); // Selector cho tiêu đề list
+                                if (listNameDisplay) { // Cẩn thận, cần selector chính xác hơn nếu có nhiều h1
+                                    const listNameSpan = listNameDisplay.querySelector('span.text-orange-600');
+                                    if (listNameSpan) listNameSpan.textContent = newListName;
+                                    else listNameDisplay.textContent = newListName; // Fallback
+                                }
+                                const breadcrumbCurrent = document.querySelector('nav[aria-label="breadcrumb"] li[aria-current="page"]');
+                                if (breadcrumbCurrent) {
+                                    breadcrumbCurrent.textContent = newListName;
+                                    breadcrumbCurrent.title = newListName;
+                                }
+                                const renameButtonOnPage = document.querySelector(`.rename-list-btn[data-list-id="${listId}"]`);
+                                if (renameButtonOnPage) {
+                                    renameButtonOnPage.dataset.currentName = newListName;
+                                }
+                                alert(data.message || 'List name updated successfully!');
+                            } else {
+                                alert('Error: ' + (data.message || 'Could not rename list.'));
+                            }
+                        })
+                        .catch(error => { /* ... (xử lý catch như cũ) ... */
+                            console.error('Error renaming list:', error);
+                            let errorMessage = 'An error occurred. Please try again.';
+                            if (error && error.message) {
+                                errorMessage = error.message;
+                            }
+                            alert(errorMessage);
+                        });
+                });
+            }
+            // --- End of JavaScript for Rename List Modal ---
 
             // --- JavaScript for Listen Buttons ---
             const INTRA_ITEM_SPEECH_DELAY = 750;

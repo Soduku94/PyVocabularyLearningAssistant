@@ -5,136 +5,294 @@
 {% endblock %}
 
 {% block page_content %}
-    <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg max-w-2xl mx-auto">
-        <h1 class="text-2xl md:text-3xl font-semibold text-gray-800 mb-6 border-b pb-4">User Profile</h1>
+    <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg max-w-3xl mx-auto space-y-8">
 
-        {# Hiển thị thông báo flash ở đây nếu muốn, hoặc dựa vào base.html #}
-        {# {% with messages = get_flashed_messages(with_categories=true) %} ... {% endwith %} #}
-        {% if user_profile_info.picture %}
-            <img src="{{ user_profile_info.picture }}" alt="Avatar"
-                 class="w-20 h-20 rounded-full border-2 border-orange-300 object-cover">
-        {% else %}
-            <span class="inline-block h-20 w-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                <svg class="h-16 w-16 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-            </span>
-        {% endif %}
+        {# Phần tiêu đề trang #}
         <div>
-            <h2 class="text-xl font-semibold text-gray-700">{{ user_profile_info.display_name if user_profile_info.display_name else user_profile_info.name }}</h2>
-            <p class="text-sm text-gray-500">{{ user_profile_info.email }}</p>
-            {% if not user_profile_info.has_password and user_profile_info.google_id %}
-                <p class="text-xs text-yellow-600 mt-1">Tài khoản của bạn được đăng nhập qua Google và chưa có mật khẩu
-                    riêng trên hệ thống.</p>
-            {% endif %}
+            <h1 class="text-2xl md:text-3xl font-semibold text-gray-800">My Profile</h1>
+            <p class="text-sm text-gray-500">Manage your personal information, settings, and activity.</p>
         </div>
-    </div>
+        <hr>
 
-    <div>
-        <h3 class="text-lg font-medium text-gray-700 mb-3">Update Your Information</h3>
-        <form method="POST" action="{{ url_for('update_profile_info_route') }}"
-              class="space-y-4 bg-gray-50 p-6 rounded-md">
-            {# {{ csrf_token_form_field() }} #} {# Nếu bạn dùng CSRF protection cho form này #}
-            <div>
-                <label for="display_name" class="block text-sm font-medium text-gray-700">Display Name</label>
-                <input type="text" name="display_name" id="display_name"
-                       value="{{ user_profile_info.display_name if user_profile_info.display_name else user_profile_info.name }}"
+        {% if user_profile_info %}
+            {# SECTION 1: Thông tin cá nhân và Avatar #}
+            <section id="personal-info" class="space-y-6">
+                <h2 class="text-xl font-semibold text-gray-700">Personal Information</h2>
+                <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
+                    {# Avatar và nút đổi avatar #}
+                    <div class="flex-shrink-0">
+                        {% if user_profile_info.picture %}
+                            <img src="{{ user_profile_info.picture }}" alt="User Avatar"
+                                 class="w-24 h-24 rounded-full border-2 border-orange-300 object-cover">
+                        {% else %}
+                            <span class="inline-flex items-center justify-center h-24 w-24 rounded-full bg-gray-200 border-2 border-orange-300">
+                            <svg class="h-16 w-16 text-gray-500" fill="currentColor" viewBox="0 0 24 24"><path
+                                    d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        </span>
+                        {% endif %}
+                        <button type="button"
+                                class="mt-2 w-full text-xs px-3 py-1.5 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300">
+                            Change Avatar
+                        </button>
+                        {# Chức năng upload avatar sẽ làm sau #}
+                    </div>
+                    {# Thông tin tên và email #}
+                    <div class="text-center sm:text-left">
+                        <form method="POST" action="{{ url_for('update_profile_info_route') }}" class="space-y-3">
+                            <div>
+                                <label for="display_name" class="block text-sm font-medium text-gray-700">Display
+                                    Name:</label>
+                                <input type="text" name="display_name" id="display_name"
+                                       value="{{ user_profile_info.display_name if user_profile_info.display_name else user_profile_info.name }}"
+                                       class="mt-1 block w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500"><strong>Email:</strong> {{ user_profile_info.email }}
+                                    (Cannot be changed)</p>
+                            </div>
+                            <button type="submit"
+                                    class="px-5 py-2 bg-blue-600 text-white text-xs font-medium rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Save Name
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            <hr>
+
+            {# SECTION 2: Khu vực Mật khẩu #}
+            <section id="password-management" class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-700">Password Settings</h2>
+                {% if not user_profile_info.has_password and user_profile_info.google_id %}
+                    <p class="text-sm text-yellow-700 bg-yellow-50 p-3 rounded-md">Your account is currently linked with
+                        Google. Setting a password here will allow you to log in using your email and this password as
+                        an alternative.</p>
+                {% endif %}
+                <button type="button" id="openChangePasswordModalBtn"
+                        class="px-6 py-2.5 bg-orange-500 text-white font-medium text-sm rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                    {% if user_profile_info.has_password %}
+                        Change Password
+                    {% else %}
+                        Set Password
+                    {% endif %}
+                </button>
+            </section>
+            <hr>
+
+            {# SECTION 3: Cài đặt Thông báo (Chỉ giao diện) #}
+            <section id="notification-settings" class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-700">Notification Settings</h2>
+                <div class="space-y-3 text-sm text-gray-700">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                        <label for="email_notifications" class="font-medium">Receive email notifications for new
+                            features</label>
+                        <input id="email_notifications" name="email_notifications" type="checkbox"
+                               class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                        <label for="practice_reminders" class="font-medium">Get practice reminders</label>
+                        <input id="practice_reminders" name="practice_reminders" type="checkbox"
+                               class="h-4 w-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500">
+                    </div>
+                </div>
+            </section>
+            <hr>
+
+            {# SECTION 4: Thống kê Hoạt động #}
+            <section id="activity-stats" class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-700">Your Activity</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="p-4 bg-blue-50 rounded-lg text-center">
+                        <p class="text-3xl font-bold text-blue-600">{{ user_stats.num_lists if user_stats else '0' }}</p>
+                        <p class="text-sm text-blue-700">Lists Created</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg text-center">
+                        <p class="text-3xl font-bold text-green-600">{{ user_stats.num_entries if user_stats else '0' }}</p>
+                        <p class="text-sm text-green-700">Words Saved</p>
+                    </div>
+                    <div class="p-4 bg-indigo-50 rounded-lg text-center">
+                        <p class="text-sm text-indigo-700">Joined G-Easy on</p>
+                        <p class="text-lg font-semibold text-indigo-800">{{ user_profile_info.created_at.strftime('%b %d, %Y') if user_profile_info and user_profile_info.created_at else 'N/A' }}</p>
+                        <p class="text-xs text-indigo-500">
+                            ({{ user_profile_info.time_with_us if user_profile_info and user_profile_info.time_with_us else 'Calculating...' }})</p>
+                    </div>
+                </div>
+            </section>
+            </div>
+        {% else %}
+            <p class="text-red-500 text-center">Could not load user profile information.</p>
+        {% endif %}
+    {# MODAL CHO THAY ĐỔI/ĐẶT MẬT KHẨU #}
+<div id="changePasswordModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 hidden modal-backdrop opacity-0">
+    <div class="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="changePasswordDialog">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="changePasswordModalTitle" class="text-lg font-medium leading-6 text-gray-900">
+                {% if user_profile_info and user_profile_info.has_password %} Change Your Password {% else %} Set Your Password {% endif %}
+            </h3>
+            <button id="closeChangePasswordModalBtn" class="text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+
+        <div id="changePasswordModalError" class="p-3 mb-4 text-sm text-red-700 bg-red-100 rounded-lg hidden" role="alert"></div>
+
+        <form id="changePasswordForm" class="space-y-4">
+            {# Trường Mật khẩu hiện tại - sẽ được ẩn/hiện bằng JS #}
+            <div id="currentPasswordContainer" {% if user_profile_info and not user_profile_info.has_password %}class="hidden"{% endif %}>
+                <label for="modal_current_password" class="block text-sm font-medium text-gray-700">Current Password</label>
+                <input type="password" name="current_password" id="modal_current_password"
                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
             </div>
-            {# Thêm các trường khác ở đây nếu muốn, ví dụ: bio, date_of_birth #}
+
             <div>
+                <label for="modal_new_password" class="block text-sm font-medium text-gray-700">New Password</label>
+                <input type="password" name="new_password" id="modal_new_password" required
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+                       minlength="6">
+                <p class="text-xs text-gray-500 mt-1">Must be at least 6 characters.</p>
+            </div>
+            <div>
+                <label for="modal_confirm_password" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                <input type="password" name="confirm_password" id="modal_confirm_password" required
+                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+            </div>
+            <div class="pt-5 sm:flex sm:flex-row-reverse">
                 <button type="submit"
-                        class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 text-white font-medium text-sm rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Save Information
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-500 text-base font-medium text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    {% if user_profile_info and user_profile_info.has_password %} Update Password {% else %} Set Password {% endif %}
+                </button>
+                <button type="button" id="cancelChangePasswordModalBtn"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
+                    Cancel
                 </button>
             </div>
         </form>
     </div>
+</div>
+{% endblock %}
 
-    {% if user_profile_info %}
-        <div class="space-y-6">
-            <div class="flex items-center space-x-4 mb-8">
-                {% if user_profile_info.picture %}
-                    <img src="{{ user_profile_info.picture }}" alt="Avatar"
-                         class="w-20 h-20 rounded-full border-2 border-orange-300 object-cover">
-                {% else %}
-                    <span class="inline-block h-20 w-20 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                <svg class="h-16 w-16 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-            </span>
-                {% endif %}
-                <div>
-                    <h2 class="text-xl font-semibold text-gray-700">{{ user_profile_info.name }}</h2>
-                    <p class="text-sm text-gray-500">{{ user_profile_info.email }}</p>
-                    {% if not user_profile_info.has_password and user_profile_info.google_id %}
-                        <p class="text-xs text-yellow-600 mt-1">Tài khoản của bạn được đăng nhập qua Google và chưa
-                            có mật khẩu
-                            riêng trên hệ thống.</p>
-                    {% endif %}
-                </div>
-            </div>
+{% block scripts_extra %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // --- JavaScript cho Modal Đổi/Đặt Mật khẩu ---
+    const changePasswordModal = document.getElementById('changePasswordModal');
+    const changePasswordDialog = document.getElementById('changePasswordDialog');
+    const openChangePasswordModalBtn = document.getElementById('openChangePasswordModalBtn');
+    const closeChangePasswordModalBtn = document.getElementById('closeChangePasswordModalBtn');
+    const cancelChangePasswordModalBtn = document.getElementById('cancelChangePasswordModalBtn');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    const changePasswordModalError = document.getElementById('changePasswordModalError');
+    const currentPasswordContainer = document.getElementById('currentPasswordContainer');
+    const modalCurrentPasswordInput = document.getElementById('modal_current_password');
 
-            <div>
-                <h3 class="text-lg font-medium text-gray-700 mb-3">
-                    {% if user_profile_info.has_password %}
-                        Change Your Password
-                    {% else %}
-                        Set Your Password
-                    {% endif %}
-                </h3>
-                <form method="POST" action="{{ url_for('profile_page') }}"
-                      class="space-y-4 bg-gray-50 p-6 rounded-md">
-                    {# NẾU ĐÃ CÓ MẬT KHẨU, YÊU CẦU NHẬP MẬT KHẨU HIỆN TẠI #}
-                    {% if user_profile_info.has_password %}
-                        <div>
-                            <label for="current_password" class="block text-sm font-medium text-gray-700">Current
-                                Password</label>
-                            <input type="password" name="current_password" id="current_password" required
-                                   class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
-                        </div>
-                        <hr class="my-3"> {# Đường kẻ phân cách #}
-                    {% endif %}
+    // Lấy trạng thái has_password từ biến Jinja2 (cần được truyền vào từ Flask)
+    const userHasPassword = {{ user_profile_info.has_password | tojson | safe if user_profile_info else 'false' }};
 
-                    <div>
-                        <label for="new_password" class="block text-sm font-medium text-gray-700">New
-                            Password</label>
-                        <input type="password" name="new_password" id="new_password" required
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-                               minlength="6">
-                        <p class="text-xs text-gray-500 mt-1">Must be at least 6 characters.</p>
-                    </div>
-                    <div>
-                        <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm New
-                            Password</label>
-                        <input type="password" name="confirm_password" id="confirm_password" required
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
-                    </div>
-                    <div>
-                        <button type="submit"
-                                class="w-full sm:w-auto px-6 py-2.5 bg-orange-500 text-white font-medium text-sm rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-                            {% if user_profile_info.has_password %}
-                                Update Password
-                            {% else %}
-                                Set Password
-                            {% endif %}
-                        </button>
-                    </div>
-                </form>
-            </div>
+    function openChangePasswordModal() {
+        if (changePasswordModal && changePasswordDialog) {
+            // Reset form và lỗi
+            changePasswordForm.reset();
+            if(changePasswordModalError) {
+                changePasswordModalError.classList.add('hidden');
+                changePasswordModalError.textContent = '';
+            }
 
-            {# Các thông tin khác có thể thêm sau, ví dụ: #}
-            {#
-        <div class="mt-8 border-t pt-6">
-            <h3 class="text-lg font-medium text-gray-700 mb-3">Account Statistics</h3>
-            <p class="text-sm text-gray-600">Number of lists: ...</p>
-            <p class="text-sm text-gray-600">Number of words saved: ...</p>
-        </div>
-        #}
+            // Ẩn/hiện trường current_password dựa trên userHasPassword
+            if (userHasPassword) {
+                if(currentPasswordContainer) currentPasswordContainer.classList.remove('hidden');
+                if(modalCurrentPasswordInput) modalCurrentPasswordInput.required = true;
+            } else {
+                if(currentPasswordContainer) currentPasswordContainer.classList.add('hidden');
+                if(modalCurrentPasswordInput) modalCurrentPasswordInput.required = false;
+            }
 
-        </div>
-    {% else %}
-        <p class="text-red-500 text-center">Could not load user profile information.</p>
-    {% endif %}
-    </div>
+            changePasswordModal.classList.remove('hidden', 'opacity-0');
+            document.body.classList.add('modal-active');
+            void changePasswordDialog.offsetWidth;
+            changePasswordDialog.classList.remove('scale-95', 'opacity-0');
+            changePasswordDialog.classList.add('scale-100', 'opacity-100');
+        }
+    }
+
+    function closeChangePasswordModal() {
+        if (changePasswordModal && changePasswordDialog) {
+            changePasswordDialog.classList.remove('scale-100', 'opacity-100');
+            changePasswordDialog.classList.add('scale-95', 'opacity-0');
+            changePasswordModal.classList.add('opacity-0');
+            setTimeout(() => {
+                changePasswordModal.classList.add('hidden');
+                document.body.classList.remove('modal-active');
+            }, 300);
+        }
+    }
+
+    if (openChangePasswordModalBtn) {
+        openChangePasswordModalBtn.addEventListener('click', openChangePasswordModal);
+    }
+    if (closeChangePasswordModalBtn) {
+        closeChangePasswordModalBtn.addEventListener('click', closeChangePasswordModal);
+    }
+    if (cancelChangePasswordModalBtn) {
+        cancelChangePasswordModalBtn.addEventListener('click', closeChangePasswordModal);
+    }
+    if (changePasswordModal) {
+        changePasswordModal.addEventListener('click', function(event) {
+            if (event.target === changePasswordModal) {
+                closeChangePasswordModal();
+            }
+        });
+    }
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && changePasswordModal && !changePasswordModal.classList.contains('hidden')) {
+            closeChangePasswordModal();
+        }
+    });
+
+    if (changePasswordForm) {
+        changePasswordForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(changePasswordForm);
+            const data = Object.fromEntries(formData.entries());
+
+            if(changePasswordModalError) changePasswordModalError.classList.add('hidden');
+
+            fetch("{{ url_for('profile_page') }}", { // Form vẫn submit về profile_page (POST)
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json()) // Giả sử backend luôn trả về JSON cho lỗi validation từ POST
+            .then(result => {
+                if (result.success) {
+                    closeChangePasswordModal();
+                    alert(result.message || 'Mật khẩu đã được cập nhật!');
+                    // Cập nhật userHasPassword trên client để modal hiển thị đúng lần sau
+                    // Tuy nhiên, reload sẽ an toàn hơn nếu backend có flash message.
+                    // Hoặc backend trả về trạng thái has_password mới.
+                    window.location.reload(); // Tải lại để thấy flash message từ server
+                } else {
+                    if (changePasswordModalError) {
+                        changePasswordModalError.textContent = result.message || 'Lỗi không xác định.';
+                        changePasswordModalError.classList.remove('hidden');
+                    } else {
+                        alert('Lỗi: ' + (result.message || 'Lỗi không xác định.'));
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error updating password:', error);
+                if (changePasswordModalError) {
+                    changePasswordModalError.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+                    changePasswordModalError.classList.remove('hidden');
+                } else {
+                    alert('Lỗi kết nối. Vui lòng thử lại.');
+                }
+            });
+        });
+    }
+    // --- End of JavaScript for Change Password Modal ---
+
+});
+</script>
+
 {% endblock %}

@@ -20,19 +20,25 @@
         {% endif %}
 
         <form method="POST" action="{{ url_for('enter_words_page') }}">
-            {% if target_list_info %}
-                <input type="hidden" name="target_list_id_on_post" value="{{ target_list_info.id }}">
-            {% endif %}
+            {{ form.hidden_tag() }} {# <<< THÊM DÒNG NÀY ĐỂ CÓ CSRF TOKEN VÀ HIDDEN FIELDS #}
+
+            {# Không cần hidden input target_list_id_on_post ở đây nữa nếu đã có trong class Form #}
+            {# {% if target_list_info %}
+        <input type="hidden" name="target_list_id_on_post" value="{{ target_list_info.id }}">
+        {% endif %} #}
+
             <div class="mb-4">
-                <label for="words_input" class="block text-sm font-medium text-gray-700 mb-1">Enter Words here:</label>
-                <textarea name="words_input" id="words_input" rows="3"
-                          class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500"
-                          placeholder="Consider, coast, develop, ...">{{ input_words_str if input_words_str else '' }}</textarea>
+                {{ form.words_input.label(class="block text-sm font-medium text-gray-700 mb-1") }}
+                {{ form.words_input(rows="3", id="words_input", class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500", placeholder="Consider, coast, develop, ...") }}
+                {# Bỏ value ở đây, WTForms tự xử lý #}
+                {% if form.words_input.errors %}
+                    <ul class="text-red-500 text-xs mt-1 list-disc list-inside">
+                        {% for error in form.words_input.errors %}
+                            <li>{{ error }}</li>{% endfor %}
+                    </ul>
+                {% endif %}
             </div>
-            <button type="submit" id="generateBtn"
-                    class="px-6 py-2.5 bg-orange-500 text-white font-medium text-sm rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-                Generate
-            </button>
+            {{ form.submit(id="generateBtn", class="px-6 py-2.5 bg-orange-500 text-white font-medium text-sm rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500") }}
         </form>
 
         {% if results and results|length > 0 %} {# Thêm kiểm tra results không rỗng #}
