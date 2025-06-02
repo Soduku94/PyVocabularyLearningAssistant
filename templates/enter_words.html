@@ -66,7 +66,19 @@
                                         {# 1. Loại từ #}
                                         <p class="text-sm text-gray-500 mb-1"><strong>Type:</strong> {{ def_item.type }}
                                         </p>
+                                        {# 3. Câu giải thích nghĩa của từ đó bằng tiếng Anh #}
+                                        {% if def_item.definition_en %}
+                                            <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">English
+                                                Meaning:</p>
+                                            <p class="text-sm text-gray-700 mb-1">{{ def_item.definition_en }}</p>
+                                        {% endif %}
 
+                                        {# 4. Câu giải thích nghĩa của từ đó bằng tiếng Việt #}
+                                        {% if def_item.definition_vi %}
+                                            <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">Vietnamese
+                                                Meaning:</p>
+                                            <p class="text-sm text-gray-700 mb-2">{{ def_item.definition_vi }}</p>
+                                        {% endif %}
                                         {# 2. Ví dụ dùng từ đó trong một câu cụ thể (tiếng Anh) #}
                                         {% if def_item.example_sentence and def_item.example_sentence != "N/A" %}
                                             <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">Example Sentence
@@ -78,19 +90,8 @@
                                             <p class="text-sm text-gray-600 italic mb-2">{{ highlighted_example | safe }}</p>
                                         {% endif %}
 
-                                        {# 3. Câu giải thích nghĩa của từ đó bằng tiếng Anh #}
-                                        {% if def_item.definition_en %}
-                                            <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">English
-                                                Explanation:</p>
-                                            <p class="text-sm text-gray-700 mb-1">{{ def_item.definition_en }}</p>
-                                        {% endif %}
 
-                                        {# 4. Câu giải thích nghĩa của từ đó bằng tiếng Việt #}
-                                        {% if def_item.definition_vi %}
-                                            <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">Vietnamese
-                                                Explanation:</p>
-                                            <p class="text-sm text-gray-700 mb-2">{{ def_item.definition_vi }}</p>
-                                        {% endif %}
+
 
                                         <div class="mt-3">
                                             <button class="listen-btn text-xs px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2"
@@ -353,7 +354,6 @@
 
             if (saveToMyListBtn) {
                 saveToMyListBtn.addEventListener('click', function () {
-                    // ĐÃ SỬA LỖI CÚ PHÁP Ở ĐÂY:
                     const vocabularyDataToSave = {{ results | tojson | safe if results else '{}' }};
 
                     if (Object.keys(vocabularyDataToSave).length === 0) {
@@ -396,7 +396,6 @@
 
             if (confirmSaveListBtnModal) {
                 confirmSaveListBtnModal.addEventListener('click', function () {
-                    // ĐÃ SỬA LỖI CÚ PHÁP Ở ĐÂY:
                     const vocabularyDataToSave = {{ results | tojson | safe if results else '{}' }};
 
                     if (Object.keys(vocabularyDataToSave).length === 0) {
@@ -513,102 +512,111 @@
                 }
             });
 
-            // --- JavaScript for Listen Buttons ---
+            // --- JavaScript for Listen Buttons (CHỈ PHÁT ÂM TỪ GỐC) ---
             const listenButtons = document.querySelectorAll('.listen-btn');
             listenButtons.forEach(button => {
                 button.addEventListener('click', function () {
-                    console.log("Nút Listen riêng lẻ được nhấn cho từ:", this.dataset.word); // DEBUG
-                    if (typeof responsiveVoice === 'undefined') {
-                        alert('ResponsiveVoice JS chưa sẵn sàng. Vui lòng kiểm tra lại liên kết thư viện trong base.html hoặc kết nối mạng.');
+                    console.log("Nút Listen được nhấn cho từ:", this.dataset.word); // DEBUG
+                    if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
+                        alert('ResponsiveVoice JS chưa sẵn sàng hoặc trình duyệt không hỗ trợ. Vui lòng kiểm tra lại hoặc thử làm mới trang.');
+                        console.error('ResponsiveVoice object not ready or voice support failed.');
                         return;
                     }
-                    const word = this.dataset.word;
-                    const definitionVi = this.dataset.defVi;
-                    const exampleEn = this.dataset.exampleEn;
-                    responsiveVoice.cancel();
-                    let textsToPlay = [];
-                    if (word && word.trim() !== "") {
-                        textsToPlay.push({text: word, voice: "UK English Male"});
-                    }
-                    if (definitionVi && definitionVi.trim() !== "" && definitionVi.trim().toLowerCase() !== word.trim().toLowerCase()) {
-                        textsToPlay.push({text: definitionVi, voice: "Vietnamese Female"});
-                    }
-                    if (exampleEn && exampleEn.trim() !== "") {
-                        textsToPlay.push({text: exampleEn, voice: "UK English Male"});
-                    }
 
-                    let currentIndex = 0;
+                    const wordToSpeak = this.dataset.word; // Chỉ lấy từ gốc để phát âm
 
-                    function playNextInQueue() {
-                        if (currentIndex < textsToPlay.length) {
-                            let currentPlayItem = textsToPlay[currentIndex];
-                            responsiveVoice.speak(currentPlayItem.text, currentPlayItem.voice, {
-                                onend: function () {
-                                    currentIndex++;
-                                    setTimeout(playNextInQueue, INTRA_ITEM_SPEECH_DELAY);
-                                }
-                            });
-                        }
-                    }
-
-                    if (textsToPlay.length > 0) {
-                        playNextInQueue();
+                    if (wordToSpeak && wordToSpeak.trim() !== "") {
+                        responsiveVoice.cancel(); // Hủy các lượt phát âm trước đó (nếu có)
+                        console.log("Đang phát âm từ:", wordToSpeak);
+                        responsiveVoice.speak(wordToSpeak, "UK English Male", {
+                            onstart: function () {
+                                console.log("Bắt đầu phát âm:", wordToSpeak);
+                            },
+                            onend: function () {
+                                console.log("Kết thúc phát âm:", wordToSpeak);
+                            },
+                            onerror: function (e) {
+                                console.error("Lỗi khi phát âm:", wordToSpeak, e);
+                                alert("Lỗi khi phát âm từ: " + wordToSpeak);
+                            }
+                        });
                     } else {
-                        alert("Không có nội dung hợp lệ để đọc.");
+                        alert("Không có từ hợp lệ để phát âm.");
                     }
                 });
             });
-
-            // --- JavaScript for Play All Button ---
+            // --- End of JavaScript for Listen Buttons ---
+            // --- JavaScript for Play All Button (CHỈ ĐỌC TỪ TIẾNG ANH GỐC) ---
             const playAllButton = document.getElementById('playAllBtn');
             if (playAllButton) {
                 playAllButton.addEventListener('click', function () {
                     console.log("Nút Play All được nhấn!"); // DEBUG
-                    if (typeof responsiveVoice === 'undefined') {
-                        alert('ResponsiveVoice JS chưa sẵn sàng.');
+                    if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
+                        alert('ResponsiveVoice JS chưa sẵn sàng hoặc trình duyệt không hỗ trợ.');
+                        console.error('ResponsiveVoice object not ready or voice support failed (Play All).');
                         return;
                     }
-                    const displayedWordElements = document.querySelectorAll('details > summary > h3.text-orange-600');
+
                     let uniqueWordsToPlay = new Set();
-                    displayedWordElements.forEach(wordElement => {
-                        const word = wordElement.textContent.trim();
-                        if (word) {
+                    // Cách lấy từ cho Play All có thể khác nhau giữa enter_words.html và list_detail.html
+                    // Cách 1: Dựa vào các từ gốc hiển thị (ví dụ: thẻ h3 trong summary của enter_words.html)
+                    // const displayedWordElements = document.querySelectorAll('details > summary > h3.text-orange-600');
+                    // displayedWordElements.forEach(wordElement => {
+                    //     const word = wordElement.textContent.trim();
+                    //     if (word) { uniqueWordsToPlay.add(word); }
+                    // });
+
+                    // Cách 2: Dựa vào data-word của tất cả các nút .listen-btn trên trang (an toàn hơn nếu cấu trúc HTML thay đổi)
+                    const allListenButtons = document.querySelectorAll('.listen-btn');
+                    allListenButtons.forEach(button => {
+                        const word = button.dataset.word;
+                        if (word && word.trim() !== "") {
                             uniqueWordsToPlay.add(word);
                         }
                     });
+                    console.log("Các từ sẽ được Play All (unique):", Array.from(uniqueWordsToPlay)); // DEBUG
+
                     if (uniqueWordsToPlay.size === 0) {
                         alert('Không có từ nào để phát âm.');
                         return;
                     }
-                    responsiveVoice.cancel();
-                    let masterPlayQueue = [];
-                    uniqueWordsToPlay.forEach(word => {
-                        masterPlayQueue.push({text: word, voice: "UK English Male"});
-                    });
+
+                    responsiveVoice.cancel(); // Hủy các lượt phát âm trước đó
+                    let masterPlayQueue = Array.from(uniqueWordsToPlay); // Chuyển Set thành Array
                     let currentMasterIndex = 0;
 
                     function playNextInMasterQueue() {
                         if (currentMasterIndex < masterPlayQueue.length) {
-                            let currentPlayItem = masterPlayQueue[currentMasterIndex];
-                            console.log("Play All (English word only) - Playing:", currentPlayItem.text);
-                            responsiveVoice.speak(currentPlayItem.text, currentPlayItem.voice, {
+                            let currentPlayItemText = masterPlayQueue[currentMasterIndex];
+                            console.log("Play All - Đang phát âm:", currentPlayItemText);
+                            responsiveVoice.speak(currentPlayItemText, "UK English Male", {
+                                onstart: function () {
+                                    console.log("Play All - Bắt đầu:", currentPlayItemText);
+                                },
                                 onend: function () {
+                                    console.log("Play All - Kết thúc:", currentPlayItemText);
                                     currentMasterIndex++;
-                                    setTimeout(playNextInMasterQueue, INTER_WORD_PLAY_ALL_DELAY);
+                                    setTimeout(playNextInMasterQueue, INTER_WORD_PLAY_ALL_DELAY); // INTER_WORD_PLAY_ALL_DELAY đã định nghĩa ở đầu script
+                                },
+                                onerror: function (e) {
+                                    console.error("Play All - Lỗi khi phát âm:", currentPlayItemText, e);
+                                    // Có thể quyết định dừng hoặc bỏ qua từ lỗi và tiếp tục
+                                    currentMasterIndex++;
+                                    setTimeout(playNextInMasterQueue, INTER_WORD_PLAY_ALL_DELAY); // Tiếp tục với từ tiếp theo
                                 }
                             });
                         } else {
-                            console.log("Play All (English words only) đã hoàn tất.");
+                            console.log("Play All đã hoàn tất.");
                         }
                     }
 
                     if (masterPlayQueue.length > 0) {
                         playNextInMasterQueue();
-                    } else {
-                        alert("Không có nội dung hợp lệ để đọc cho Play All.");
                     }
+                    // Không cần alert ở đây nữa vì đã kiểm tra uniqueWordsToPlay.size ở trên
                 });
             }
+            // --- End of JavaScript for Play All Button ---
         });
     </script>
 {% endblock %}
