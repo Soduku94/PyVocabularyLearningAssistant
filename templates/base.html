@@ -54,103 +54,185 @@
             <a href="{{ url_for('home') }}" class="text-2xl font-bold text-orange-500">G-EASY</a>
             <p class="text-sm text-gray-500">ENGLISH</p>
         </div>
-        <nav>
-            <ul class="space-y-2">
+        <nav class="flex-grow">
+            <ul class="space-y-1.5">
+                {% set active_class = "bg-orange-500 text-white hover:text-white shadow-md" %}
+                {% set inactive_class = "hover:bg-orange-50 hover:text-orange-600" %}
+
+                {# 1. LINK LUÔN HIỂN THỊ CHO MỌI NGƯỜI (KỂ CẢ KHÁCH) #}
                 <li>
                     <a href="{{ url_for('home') }}"
-                       class="flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-orange-100 hover:text-orange-600 {% if request.endpoint == 'home' %}bg-orange-500 text-white hover:text-white{% else %}hover:bg-orange-50{% endif %}">
-                        <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'home' %}text-white{% else %}text-gray-500 group-hover:text-orange-600{% endif %}"
+                       class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+                      {% if request.endpoint == 'home' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
+                        <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'home' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %} transition-colors duration-200"
                              fill="currentColor" viewBox="0 0 20 20">
                             <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
                         </svg>
-                        <span>Home Page</span>
+                        <span class="font-medium">Home Page</span>
                     </a>
                 </li>
 
                 {% if user_info %}
-                    <li>
-                        <a href="{{ url_for('dashboard_page') }}"
-                           class="flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-orange-100 hover:text-orange-600 {% if request.endpoint == 'dashboard_page' %}bg-orange-500 text-white hover:text-white{% else %}hover:bg-orange-50{% endif %}">
-                            <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'dashboard_page' %}text-white{% else %}text-gray-500 group-hover:text-orange-600{% endif %}"
-                                 fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"></path>
-                                <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"></path>
-                            </svg>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
+                    {# NGƯỜI DÙNG ĐÃ ĐĂNG NHẬP #}
+                    {% if user_info.is_admin %}
+                        {# ===== ADMIN MENU ===== #}
+                        <li class="mt-4 mb-1 px-4 border-t border-gray-200 pt-4">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin Area</p>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('admin_dashboard') }}"
+                               class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+
+                                       {% if request.endpoint == 'admin_dashboard' or request.endpoint == 'admin_view_user_detail' or request.endpoint == 'admin_view_list_entries_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'admin_dashboard' or request.endpoint == 'admin_view_user_detail' or request.endpoint == 'admin_view_list_entries_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
+                                     fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
+                                </svg>
+                                <span class="font-medium">User Management</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('admin_api_logs_page') }}"
+                               class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+
+                                       {% if request.endpoint == 'admin_api_logs_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'admin_api_logs_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
+                                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                <span class="font-medium">API Management</span>
+                            </a>
+                        </li>
+                        {# Admin vẫn có User Profile của chính họ #}
+                        <li class="mt-4 mb-1 px-4 border-t border-gray-200 pt-4">
+                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">My Account</p>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('profile_page') }}"
+                               class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+
+                                       {% if request.endpoint == 'profile_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'profile_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
+                                     fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                          clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="font-medium">User Profile</span>
+                            </a>
+                        </li>
+                    {% else %}
+                        {# ===== REGULAR USER MENU (ĐÃ ĐĂNG NHẬP, KHÔNG PHẢI ADMIN) ===== #}
+                        <li>
+                            <a href="{{ url_for('dashboard_page') }}"
+                               class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+
+                                       {% if request.endpoint == 'dashboard_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'dashboard_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
+                                     fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"></path>
+                                    <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"></path>
+                                </svg>
+                                <span class="font-medium">Dashboard</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('my_lists_page') }}"
+                               class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+                              {% if request.endpoint == 'my_lists_page' or request.endpoint == 'list_detail_page' %} {{ active_class }} {% else %} {{ inactive_class }} {% endif %}">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'my_lists_page' or request.endpoint == 'list_detail_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
+                                     fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"></path>
+                                </svg>
+                                <span class="font-medium">My Lists</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('enter_words_page') }}"
+                               class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+
+                                       {% if request.endpoint == 'enter_words_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'enter_words_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
+                                     fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                          d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                                          clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="font-medium">Enter new words</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#"
+                               class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200 {{ inactive_class }}">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0 text-gray-400 group-hover:text-orange-500 transition-colors duration-200"
+                                     fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M11 5a1 1 0 00-2 0v2H7a1 1 0 000 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V5z"></path>
+                                    <path d="M5.042 7.042A6.981 6.981 0 004.06 10c0 .684.097 1.347.278 1.973l-.001.002C4.23 12.82 3.25 14.53 3.003 15.5A1 1 0 004 16.997l.003-.001c.97-.247 2.68-.22 3.53.087a6.99 6.99 0 002.935 1.198A6.982 6.982 0 0010 17c.612 0 1.206-.075 1.77-.214.931-.306 2.556-.328 3.53-.087l.003.001a1 1 0 00.997-1.497c-.247-.97-1.23-2.68-1.336-3.53.181-.626.278-1.289.278-1.973a6.981 6.981 0 00-.982-2.958C15.77 6.18 16.75 4.47 16.997 3.5A1 1 0 0016 2.003l-.003.001c-.97.247-2.556.22-3.53-.087A6.99 6.99 0 0010 1 6.982 6.982 0 008.23.214c-.974.307-2.56.334-3.53.087l-.003-.001A1 1 0 003.7 1.503c.247.97 1.23 2.68 1.337 3.53A6.99 6.99 0 005.042 7.042zM10 15a5 5 0 100-10 5 5 0 000 10z"></path>
+                                </svg>
+                                <span class="font-medium">References</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('profile_page') }}"
+                               class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+
+                                       {% if request.endpoint == 'profile_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
+                                <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'profile_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %} transition-colors duration-200"
+                                     fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                                          clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="font-medium">User Profile</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                {% else %}
+                    {# USER CHƯA ĐĂNG NHẬP - Vẫn hiển thị các link này, route sẽ xử lý việc yêu cầu đăng nhập #}
                     <li>
                         <a href="{{ url_for('my_lists_page') }}"
-                           class="flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-orange-100 hover:text-orange-600 {% if request.endpoint == 'my_lists_page' or request.endpoint == 'list_detail_page' %}bg-orange-500 text-white hover:text-white{% else %}hover:bg-orange-50{% endif %}">
-                            <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'my_lists_page' or request.endpoint == 'list_detail_page' %}text-white{% else %}text-gray-500 group-hover:text-orange-600{% endif %}"
+                           class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200 {{ inactive_class }}">
+                            <svg class="w-5 h-5 mr-3 flex-shrink-0 text-gray-400 group-hover:text-orange-500"
                                  fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"></path>
                             </svg>
-                            <span>My Lists</span>
+                            <span class="font-medium">My Lists</span>
                         </a>
                     </li>
                     <li>
                         <a href="{{ url_for('enter_words_page') }}"
-                           class="flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-orange-100 hover:text-orange-600 {% if request.endpoint == 'enter_words_page' %}bg-orange-500 text-white hover:text-white{% else %}hover:bg-orange-50{% endif %}">
-                            <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'enter_words_page' %}text-white{% else %}text-gray-500 group-hover:text-orange-600{% endif %}"
+                           class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200 {{ inactive_class }}">
+                            <svg class="w-5 h-5 mr-3 flex-shrink-0 text-gray-400 group-hover:text-orange-500"
                                  fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd"
                                       d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                                       clip-rule="evenodd"></path>
                             </svg>
-                            <span>Enter new words</span>
+                            <span class="font-medium">Enter new words</span>
                         </a>
                     </li>
                     <li>
                         <a href="#"
-                           class="flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-orange-100 hover:text-orange-600">
-                            <svg class="w-5 h-5 mr-3 flex-shrink-0 text-gray-500 group-hover:text-orange-600"
+                           class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200 {{ inactive_class }}">
+                            <svg class="w-5 h-5 mr-3 flex-shrink-0 text-gray-400 group-hover:text-orange-500"
                                  fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M11 5a1 1 0 00-2 0v2H7a1 1 0 000 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V5z"></path>
                                 <path d="M5.042 7.042A6.981 6.981 0 004.06 10c0 .684.097 1.347.278 1.973l-.001.002C4.23 12.82 3.25 14.53 3.003 15.5A1 1 0 004 16.997l.003-.001c.97-.247 2.68-.22 3.53.087a6.99 6.99 0 002.935 1.198A6.982 6.982 0 0010 17c.612 0 1.206-.075 1.77-.214.931-.306 2.556-.328 3.53-.087l.003.001a1 1 0 00.997-1.497c-.247-.97-1.23-2.68-1.336-3.53.181-.626.278-1.289.278-1.973a6.981 6.981 0 00-.982-2.958C15.77 6.18 16.75 4.47 16.997 3.5A1 1 0 0016 2.003l-.003.001c-.97.247-2.556.22-3.53-.087A6.99 6.99 0 0010 1 6.982 6.982 0 008.23.214c-.974.307-2.56.334-3.53.087l-.003-.001A1 1 0 003.7 1.503c.247.97 1.23 2.68 1.337 3.53A6.99 6.99 0 005.042 7.042zM10 15a5 5 0 100-10 5 5 0 000 10z"></path>
                             </svg>
-                            <span>References</span>
+                            <span class="font-medium">References</span>
                         </a>
                     </li>
                     <li>
                         <a href="{{ url_for('profile_page') }}"
-                           class="flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-orange-100 hover:text-orange-600 {% if request.endpoint == 'profile_page' %}bg-orange-500 text-white hover:text-white{% else %}hover:bg-orange-50{% endif %}">
-                            <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'profile_page' %}text-white{% else %}text-gray-500 group-hover:text-orange-600{% endif %}"
+                           class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200 {{ inactive_class }}">
+                            <svg class="w-5 h-5 mr-3 flex-shrink-0 text-gray-400 group-hover:text-orange-500"
                                  fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
                                       clip-rule="evenodd"></path>
                             </svg>
-                            <span>User Profile</span>
+                            <span class="font-medium">User Profile</span>
                         </a>
                     </li>
-                {% endif %}
-
-                {% if user_info and user_info.is_admin %}
-                    <li class="mt-4 pt-4 border-t border-gray-200">
-                        <p class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin Area</p>
-                    </li>
-                    <li>
-                        <a href="{{ url_for('admin_dashboard') }}"
-                           class="flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-orange-100 hover:text-orange-600 {% if request.endpoint.startswith('admin_') and 'api_logs' not in request.endpoint %}bg-orange-500 text-white hover:text-white{% else %}hover:bg-orange-50{% endif %}">
-                            <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint.startswith('admin_') and 'api_logs' not in request.endpoint %}text-white{% else %}text-gray-500 group-hover:text-orange-600{% endif %}"
-                                 fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
-                            </svg>
-                            <span>User Management</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ url_for('admin_api_logs_page') }}"
-                           class="flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-orange-100 hover:text-orange-600 {% if request.endpoint == 'admin_api_logs_page' %}bg-orange-500 text-white hover:text-white{% else %}hover:bg-orange-50{% endif %}">
-                            <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'admin_api_logs_page' %}text-white{% else %}text-gray-500 group-hover:text-orange-600{% endif %}"
-                                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                            </svg>
-                            <span>API Logs</span>
-                        </a>
-                    </li>
-                {% endif %}
+                {% endif %} {# Kết thúc if user_info chung #}
             </ul>
         </nav>
 

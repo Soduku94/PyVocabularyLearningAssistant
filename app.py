@@ -1140,18 +1140,36 @@ def profile_page():
                            user_info=base_user_info)
 
 
-@app.route('/admin')
-@app.route('/admin/dashboard')  # Thêm một URL nữa cho dashboard nếu muốn
-@admin_required  # Áp dụng decorator để bảo vệ route này
+@app.route('/admin')  # Hoặc /admin/dashboard
+@admin_required
 def admin_dashboard():
-    display_user_info = get_current_user_info()  # Để base.html hiển thị đúng header
+    admin_user_info = get_current_user_info()  # Thông tin của admin đang đăng nhập
 
-    # Truy vấn tất cả người dùng để hiển thị
-    all_users = User.query.order_by(User.created_at.desc()).all()  # Lấy tất cả user, sắp xếp theo ngày tạo
+    # Lấy tất cả người dùng để hiển thị (có thể cần phân trang sau này)
+    # Kèm theo số lượng list và số từ của mỗi người dùng
+    users_data = []
+    all_users_from_db = User.query.order_by(User.id.asc()).all()
 
-    return render_template('admin/dashboard.html',
-                           user_info=display_user_info,
-                           users_list=all_users)
+    for user_item in all_users_from_db:
+        num_lists = VocabularyList.query.filter_by(user_id=user_item.id).count()
+        num_entries = VocabularyEntry.query.filter_by(user_id=user_item.id).count()
+        users_data.append({
+            "id": user_item.id,
+            "name": user_item.name,
+            "display_name": user_item.display_name,  # Tên hiển thị
+            "username": user_item.email.split('@')[0],  # Lấy phần trước @ làm username giả định
+            "email": user_item.email,
+            "saved_words": num_entries,
+            "reviewed_words": 0,  # Placeholder, chưa có tính năng này
+            "progress": "Learning",  # Placeholder
+            "status_icon": "→",  # Placeholder
+            "is_admin": user_item.is_admin,  # Để không hiển thị nút quản lý cho admin khác
+            "is_blocked": user_item.is_blocked  # Để hiển thị trạng thái và nút chặn/bỏ chặn
+        })
+
+    return render_template('admin/admin_dashboard_main.html',
+                           user_info=admin_user_info,
+                           learning_monitor_users=users_data)
 
 
 @app.route('/admin/user/<int:user_id_to_view>')

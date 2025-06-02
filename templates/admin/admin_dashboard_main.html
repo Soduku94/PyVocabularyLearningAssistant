@@ -1,0 +1,113 @@
+{# File: templates/admin/admin_dashboard_main.html #}
+{% extends "base.html" %}
+
+{% block title %}
+    Admin Dashboard - Learning Monitor
+{% endblock %}
+
+{% block page_content %}
+<div class="bg-white p-6 md:p-8 rounded-lg shadow-lg">
+    <h1 class="text-2xl md:text-3xl font-semibold text-gray-800 mb-6">Learning Monitor</h1>
+
+    {# Thanh Filter và Search (Giao diện cơ bản) #}
+    <div class="mb-6 flex flex-wrap gap-4 items-center">
+        <div>
+            <label for="filter_time" class="text-sm font-medium text-gray-700 mr-2">Time:</label>
+            <select id="filter_time" class="p-2 border border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500">
+                <option>All Time</option>
+                <option>Last 7 Days</option>
+                <option>Last 30 Days</option>
+            </select>
+        </div>
+        <div>
+            <label for="filter_status" class="text-sm font-medium text-gray-700 mr-2">Status:</label>
+            <select id="filter_status" class="p-2 border border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500">
+                <option>All</option>
+                <option>Learning</option>
+                <option>Reviewed</option>
+                <option>On Hold</option>
+            </select>
+        </div>
+        <div>
+            <label for="filter_user" class="text-sm font-medium text-gray-700 mr-2">User:</label>
+            <select id="filter_user" class="p-2 border border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500">
+                <option>All Users</option>
+                {# Populate users here if needed #}
+            </select>
+        </div>
+        <div class="relative">
+            <input type="search" placeholder="Search users..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-orange-500 focus:border-orange-500">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+            </div>
+        </div>
+        <button class="p-2 text-gray-500 hover:text-gray-700">
+             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 3a1 1 0 000 2h14a1 1 0 100-2H3zm0 4a1 1 0 000 2h14a1 1 0 100-2H3zm0 4a1 1 0 000 2h14a1 1 0 100-2H3zm0 4a1 1 0 000 2h14a1 1 0 100-2H3z" /></svg>
+        </button>
+    </div>
+
+    {# Bảng Learning Monitor #}
+    <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Saved Words</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reviewed Words</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 text-sm">
+                {% if learning_monitor_users %}
+                    {% for l_user in learning_monitor_users %}
+                    <tr class="hover:bg-gray-50 {% if l_user.is_blocked %}bg-red-50 opacity-70{% endif %}">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="font-medium text-gray-900">{{ l_user.display_name if l_user.display_name else l_user.name }}</div>
+                            <div class="text-xs text-gray-500">{{ l_user.username }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ l_user.email }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">{{ l_user.saved_words }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">{{ l_user.reviewed_words }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if l_user.progress == 'Learning' %} bg-blue-100 text-blue-800 
+                                {% elif l_user.progress == 'Reviewed' %} bg-green-100 text-green-800
+                                {% elif l_user.progress == 'On Hold' %} bg-yellow-100 text-yellow-800
+                                {% else %} bg-gray-100 text-gray-800 
+                                {% endif %}">
+                                {{ l_user.progress }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                            <a href="{{ url_for('admin_view_user_detail', user_id_to_view=l_user.id) }}" class="text-orange-600 hover:text-orange-800">
+                                {{ l_user.status_icon | safe }} {# Hoặc một icon/link cụ thể #}
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                             <a href="{{ url_for('admin_view_user_detail', user_id_to_view=l_user.id) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                             {# Nút Chặn/Bỏ chặn - logic tương tự như trong admin_dashboard.html (user list) cũ #}
+                            {% if user_info and l_user.id != session.get('db_user_id') and not l_user.is_admin %}
+                                <form method="POST" action="{{ url_for('admin_toggle_block_user_route', user_id_to_toggle=l_user.id) }}" class="inline-block"
+                                      onsubmit="return confirm('Are you sure you want to {{ 'unblock' if l_user.is_blocked else 'block' }} this user?');">
+                                    <button type="submit" 
+                                            class="text-xs px-2 py-1 rounded {% if l_user.is_blocked %} bg-yellow-400 hover:bg-yellow-500 text-black {% else %} bg-red-500 hover:bg-red-600 text-white {% endif %}">
+                                        {{ 'Unblock' if l_user.is_blocked else 'Block' }}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-10 text-center text-gray-500">No users to display.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
