@@ -216,6 +216,12 @@
             const INTRA_ITEM_SPEECH_DELAY = 750;
             const INTER_WORD_PLAY_ALL_DELAY = 2500;
 
+
+            const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]'); // Giả sử thẻ meta này có trong base.html
+            const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : null;
+            if (!csrfToken) {
+                console.warn("CSRF Token meta tag not found or token is missing. AJAX POST requests might fail if CSRF is enforced.");
+            }
             // --- JavaScript for Save Action (Main Button and Modal) ---
             const saveToMyListBtn = document.getElementById('saveToMyListBtn');
             const saveListModal = document.getElementById('saveListModal');
@@ -304,23 +310,43 @@
                     saveListErrorDiv.classList.add('hidden');
                 }
 
+                const headers = { // Tạo đối tượng headers
+                    'Content-Type': 'application/json'
+                };
+                if (csrfToken) { // Chỉ thêm nếu csrfToken đã được lấy thành công ở trên
+                    headers['X-CSRFToken'] = csrfToken;
+                } else {
+                    // Nếu không có csrfToken, có thể không nên gửi request này
+                    // vì nó chắc chắn sẽ bị server từ chối nếu CSRF được bật.
+                    console.error("CSRF Token is missing. Cannot proceed with save request.");
+                    alert("A security token is missing. Please refresh the page and try again.");
+                    return; // Dừng không gửi fetch
+                }
+
                 fetch("{{ url_for('save_list_route') }}", {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: headers, // Sử dụng headers đã cập nhật
                     body: JSON.stringify(payload)
                 })
                     .then(response => {
                         if (!response.ok) {
-                            return response.json().then(errData => {
-                                throw new Error(errData.message || 'Lỗi server');
+                            return response.json().catch(() => {
+                                // Nếu response không phải JSON (ví dụ: trang lỗi HTML từ server do một lỗi khác không phải CSRF)
+                                // Ném lỗi với statusText để catch block có thể xử lý
+                                throw new Error(response.statusText || `Server responded with status: ${response.status}`);
+                            }).then(errData => {
+                                // Ném lỗi với message từ JSON lỗi (nếu server trả về JSON lỗi)
+                                throw new Error(errData.message || `Server error: ${response.status}`);
                             });
                         }
-                        return response.json();
+                        return response.json(); // Nếu response.ok, thì đây là JSON thành công
                     })
                     .then(data => {
                         if (data.success) {
                             alert(data.message || 'Đã lưu thành công!');
-                            closeSaveModal();
+                            closeSaveModal(); // Đóng modal nếu nó đang mở (trường hợp không có targetListInfo)
+
+                            // Xóa input và results để người dùng có thể nhập từ mới
                             const wordsInputEl = document.getElementById('words_input');
                             if (wordsInputEl) wordsInputEl.value = '';
 
@@ -332,7 +358,13 @@
                             if (actionButtonsContainer) {
                                 actionButtonsContainer.style.display = 'none';
                             }
-                        } else {
+
+                            // Chuyển hướng về trang chi tiết list nếu có list_id trả về
+                            if (data.list_id) {
+                                window.location.href = "{{ url_for('list_detail_page', list_id=0) }}".replace('0', data.list_id);
+                            }
+
+                        } else { // data.success là false
                             if (saveListErrorDiv && saveListModal && !saveListModal.classList.contains('hidden')) {
                                 saveListErrorDiv.textContent = data.message || 'Lỗi khi lưu danh sách.';
                                 saveListErrorDiv.classList.remove('hidden');
@@ -342,12 +374,12 @@
                         }
                     })
                     .catch(error => {
-                        console.error('Error saving list:', error);
+                        console.error('Error saving list (fetch catch):', error);
                         if (saveListErrorDiv && saveListModal && !saveListModal.classList.contains('hidden')) {
-                            saveListErrorDiv.textContent = 'Lỗi kết nối. Không thể lưu danh sách.';
+                            saveListErrorDiv.textContent = error.message || 'Lỗi kết nối hoặc server. Không thể lưu danh sách.';
                             saveListErrorDiv.classList.remove('hidden');
                         } else {
-                            alert('Lỗi kết nối: ' + error.message);
+                            alert('Lỗi: ' + (error.message || 'Lỗi kết nối hoặc server. Không thể lưu danh sách.'));
                         }
                     });
             }
