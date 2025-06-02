@@ -93,6 +93,7 @@
                                 <form method="POST" action="{{ url_for('admin_toggle_block_user_route', user_id_to_toggle=l_user.id) }}" class="inline-block"
                                       onsubmit="return confirm('Are you sure you want to {{ 'unblock' if l_user.is_blocked else 'block' }} this user?');">
                                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
                                     <button type="submit"
                                             class="text-xs px-2 py-1 rounded {% if l_user.is_blocked %} bg-yellow-400 hover:bg-yellow-500 text-black {% else %} bg-red-500 hover:bg-red-600 text-white {% endif %}">
                                         {{ 'Unblock' if l_user.is_blocked else 'Block' }}

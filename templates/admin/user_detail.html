@@ -66,6 +66,7 @@ User Details: {{ viewed_user.email if viewed_user else "Unknown User" }} - Admin
             <form method="POST" action="{{ url_for('admin_delete_user_route', user_id_to_delete=viewed_user.id) }}"
                   onsubmit="return confirm('Bạn có CHẮC CHẮN muốn xóa người dùng \'{{ viewed_user.email }}\' và TẤT CẢ dữ liệu của họ (danh sách từ, từ vựng)? Hành động này KHÔNG THỂ hoàn tác!');">
                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
                 <button type="submit"
                         class="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                     Delete User Account
