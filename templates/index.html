@@ -13,7 +13,7 @@
         {# Div này sẽ là nơi JavaScript thay đổi ảnh nền #}
         <div id="heroBackgroundImage"
              class="absolute inset-0 bg-no-repeat bg-cover bg-center transition-all duration-1000 ease-in-out"
-             style="background-image: url('{{ url_for('static', filename='images/hero_banner_1.jpg') }}');">
+             style="background-image: url('{{ url_for('static', filename='/images/Screenshot 2025-05-23 225616.png') }}');">
             {# Ảnh đầu tiên làm mặc định #}
         </div>
 
@@ -205,7 +205,7 @@
                         setTimeout(() => {
                             heroBackgroundImage.style.backgroundImage = `url('${images[index]}')`;
                             heroBackgroundImage.style.opacity = '1';
-                        }, 500); // Thời gian hiệu ứng mờ (0.5s) - phải nhỏ hơn duration-1000 của transition-all
+                        }, 500); // Thời gian hiệu ứng mờ (1.5s) - phải nhỏ hơn duration-1000 của transition-all
                     }
                     dots.forEach((dot, i) => {
                         if (i === index) {
