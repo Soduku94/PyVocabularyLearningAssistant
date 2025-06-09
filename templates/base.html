@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    {% if csrf_token() %} {# Kiểm tra nếu CSRF được enable #}
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+    {% endif %}
     <title>{% block title %}G-Easy English{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -83,6 +84,9 @@
                             <a href="{{ url_for('admin_dashboard') }}"
                                class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
 
+
+
+
                                        {% if request.endpoint == 'admin_dashboard' or request.endpoint == 'admin_view_user_detail' or request.endpoint == 'admin_view_list_entries_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
                                 <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'admin_dashboard' or request.endpoint == 'admin_view_user_detail' or request.endpoint == 'admin_view_list_entries_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
                                      fill="currentColor" viewBox="0 0 20 20">
@@ -94,6 +98,9 @@
                         <li>
                             <a href="{{ url_for('admin_api_logs_page') }}"
                                class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+
+
+
 
                                        {% if request.endpoint == 'admin_api_logs_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
                                 <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'admin_api_logs_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
@@ -112,6 +119,9 @@
                             <a href="{{ url_for('profile_page') }}"
                                class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
 
+
+
+
                                        {% if request.endpoint == 'profile_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
                                 <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'profile_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
                                      fill="currentColor" viewBox="0 0 20 20">
@@ -126,6 +136,9 @@
                         <li>
                             <a href="{{ url_for('dashboard_page') }}"
                                class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+
+
+
 
                                        {% if request.endpoint == 'dashboard_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
                                 <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'dashboard_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
@@ -151,6 +164,9 @@
                             <a href="{{ url_for('enter_words_page') }}"
                                class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
 
+
+
+
                                        {% if request.endpoint == 'enter_words_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
                                 <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'enter_words_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %}"
                                      fill="currentColor" viewBox="0 0 20 20">
@@ -175,6 +191,9 @@
                         <li>
                             <a href="{{ url_for('profile_page') }}"
                                class="flex items-center py-2.5 px-4 text-sm text-gray-700 rounded-lg group transition-colors duration-200
+
+
+
 
                                        {% if request.endpoint == 'profile_page' %}{{ active_class }}{% else %}{{ inactive_class }}{% endif %}">
                                 <svg class="w-5 h-5 mr-3 flex-shrink-0 {% if request.endpoint == 'profile_page' %}text-white{% else %}text-gray-400 group-hover:text-orange-500{% endif %} transition-colors duration-200"
@@ -512,9 +531,184 @@
 </div>
 
 <script>
+    // Hàm để lấy CSRF token. Khai báo nó ở cấp độ window để có thể truy cập từ các script khác.
+    window.getCsrfToken = function () {
+        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+        return csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : null;
+    };
+
+    // Định nghĩa các hằng số chung cho việc phát âm.
+    // Đặt chúng trong phạm vi global (window) nếu muốn các hàm khác truy cập trực tiếp
+    // hoặc giữ chúng là const ở đây và truyền vào hàm nếu cần.
+    // Để đơn giản, tôi sẽ giữ chúng là const trong file script này.
+    const INTRA_ITEM_SPEECH_DELAY = 750; // Thời gian chờ giữa các phần của một mục từ (từ, nghĩa, ví dụ)
+    const INTER_WORD_PLAY_ALL_DELAY = 2500; // Thời gian chờ giữa các từ khi phát "Play All"
+
+    // Hàm phát âm chuỗi: Original Word -> English Meaning -> Example Sentence
+    // Hàm này được khai báo global để có thể gọi từ bất kỳ trang nào kế thừa base.html
+    window.speakEntryContent = function (word, definitionEn, exampleEn) {
+        responsiveVoice.cancel(); // Dừng bất kỳ phát âm nào đang diễn ra
+        let queue = [];
+
+        // 1. Tên từ vựng đó
+        if (word && word.trim() !== "") {
+            queue.push(word);
+        }
+
+        // 2. Nghĩa tiếng Anh của từ
+        // Kiểm tra để không đọc các giá trị mặc định/placeholder
+        if (definitionEn && definitionEn.trim() !== "" &&
+            definitionEn.toLowerCase() !== "no english definition found." &&
+            definitionEn.toLowerCase() !== "n/a") {
+            queue.push(definitionEn);
+        }
+
+        // 3. Câu ví dụ tiếng Anh
+        // Kiểm tra để không đọc các giá trị mặc định/placeholder
+        if (exampleEn && exampleEn.trim() !== "" && exampleEn.toLowerCase() !== "n/a") {
+            queue.push(exampleEn);
+        }
+
+        if (queue.length === 0) {
+            console.log("Không có nội dung để phát âm.");
+            return;
+        }
+
+        let currentQueueIndex = 0;
+
+        function playNextPart() {
+            if (currentQueueIndex < queue.length) {
+                const textToSpeak = queue[currentQueueIndex];
+                console.log("Đang phát âm (part " + (currentQueueIndex + 1) + "/" + queue.length + "):", textToSpeak);
+                responsiveVoice.speak(textToSpeak, "UK English Male", {
+                    onend: function () {
+                        currentQueueIndex++;
+                        if (currentQueueIndex < queue.length) {
+                            setTimeout(playNextPart, INTRA_ITEM_SPEECH_DELAY); // Delay giữa các phần
+                        } else {
+                            console.log("Phát âm từ đơn hoàn tất.");
+                        }
+                    },
+                    onerror: function (e) {
+                        console.error("Lỗi khi phát âm phần " + currentQueueIndex + ":", textToSpeak, e);
+                        // Bỏ qua phần lỗi và thử phần tiếp theo sau một khoảng delay
+                        currentQueueIndex++;
+                        if (currentQueueIndex < queue.length) {
+                            setTimeout(playNextPart, INTRA_ITEM_SPEECH_DELAY);
+                        } else {
+                            console.log("Phát âm từ đơn hoàn tất (có lỗi).");
+                        }
+                    }
+                });
+            }
+        }
+
+        playNextPart();
+    };
+
+    // Hàm để xử lý logic Play All chung
+    // Hàm này được khai báo global để có thể gọi từ bất kỳ trang nào kế thừa base.html
+    window.setupPlayAllButton = function (buttonId, entryContainerSelector) {
+        const playAllButton = document.getElementById(buttonId);
+        if (playAllButton) {
+            playAllButton.addEventListener('click', function () {
+                console.log("Nút Play All được nhấn!");
+                if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
+                    alert('ResponsiveVoice JS chưa sẵn sàng hoặc trình duyệt không hỗ trợ. Vui lòng kiểm tra lại hoặc thử làm mới trang.');
+                    console.error('ResponsiveVoice object not ready or voice support failed (Play All).');
+                    return;
+                }
+
+                responsiveVoice.cancel(); // Hủy các lượt phát âm trước đó
+
+                let allEntriesData = [];
+                // Lặp qua từng item từ vựng để lấy dữ liệu. Selector này cần tùy chỉnh cho mỗi trang.
+                // Ví dụ: '#resultsContainer details' cho enter_words.html
+                // Ví dụ: '.entry-item' cho list_detail.html
+                document.querySelectorAll(entryContainerSelector).forEach(entryEl => {
+                    // Cải thiện việc lấy dữ liệu từ DOM
+                    const wordElement = entryEl.querySelector('.original-word-display') || entryEl.querySelector('h3.text-lg');
+                    const word = wordElement ? wordElement.textContent.trim() : "";
+
+                    let definitionEn = "";
+                    const defEnDisplayElement = entryEl.querySelector('.definition-en-display');
+                    if (defEnDisplayElement) {
+                        definitionEn = defEnDisplayElement.textContent.trim();
+                    } else {
+                        // Fallback: cố gắng lấy từ data-attribute của nút listen nếu không có phần tử hiển thị rõ ràng
+                        const listenBtn = entryEl.querySelector('.listen-btn');
+                        if (listenBtn) {
+                            definitionEn = listenBtn.dataset.defEn || "";
+                        }
+                    }
+
+                    let exampleEn = "";
+                    const exampleEnDisplayElement = entryEl.querySelector('.example-en-display');
+                    if (exampleEnDisplayElement) {
+                        exampleEn = exampleEnDisplayElement.textContent.trim();
+                    } else {
+                        // Fallback: cố gắng lấy từ data-attribute của nút listen
+                        const listenBtn = entryEl.querySelector('.listen-btn');
+                        if (listenBtn) {
+                            exampleEn = listenBtn.dataset.exampleEn || "";
+                        }
+                    }
+
+                    if (word) {
+                        allEntriesData.push({
+                            word: word,
+                            definitionEn: definitionEn,
+                            exampleEn: exampleEn
+                        });
+                    }
+                });
+
+                if (allEntriesData.length === 0) {
+                    alert('Không có từ nào để phát âm.');
+                    return;
+                }
+
+                let masterPlayAllIndex = 0;
+
+                function playNextEntryInAllQueue() {
+                    if (masterPlayAllIndex < allEntriesData.length) {
+                        const entry = allEntriesData[masterPlayAllIndex];
+                        console.log("Play All - Đang xử lý từ:", entry.word);
+
+                        window.speakEntryContent(entry.word, entry.definitionEn, entry.exampleEn);
+
+                        // Ước lượng thời gian phát âm của một entry (tùy thuộc vào độ dài nội dung)
+                        const wordLen = entry.word ? entry.word.split(' ').length : 0;
+                        const defLen = entry.definitionEn ? entry.definitionEn.split(' ').length : 0;
+                        const exLen = entry.exampleEn ? entry.exampleEn.split(' ').length : 0;
+
+                        const estimatedTotalWords = wordLen + defLen + exLen;
+                        const estimatedSpeakingTimeMs = (estimatedTotalWords / 2.5) * 1000; // Ước tính 2.5 từ/giây
+
+                        const numberOfSegments = (entry.word ? 1 : 0) + (entry.definitionEn ? 1 : 0) + (entry.exampleEn ? 1 : 0);
+                        const totalIntraItemDelay = (numberOfSegments > 1 ? (numberOfSegments - 1) * INTRA_ITEM_SPEECH_DELAY : 0);
+
+                        const totalDelayForThisEntry = estimatedSpeakingTimeMs + totalIntraItemDelay + INTER_WORD_PLAY_ALL_DELAY;
+
+                        setTimeout(() => {
+                            masterPlayAllIndex++;
+                            playNextEntryInAllQueue();
+                        }, totalDelayForThisEntry);
+                    } else {
+                        console.log("Play All đã hoàn tất.");
+                    }
+                }
+
+                if (allEntriesData.length > 0) {
+                    playNextEntryInAllQueue();
+                }
+            });
+        }
+    };
+
+
     document.addEventListener('DOMContentLoaded', function () {
         // JavaScript cho Sidebar mobile
-
         const sidebar = document.getElementById('sidebar');
         const openSidebarBtn = document.getElementById('openSidebarBtn');
         const closeSidebarBtn = document.getElementById('closeSidebarBtn');
@@ -536,13 +730,9 @@
         const loginModal = document.getElementById('loginModal');
         const modalDialog = document.getElementById('modalDialog');
         const mainOpenLoginModalBtn = document.getElementById('openLoginModalBtn');
-        const mainCloseLoginModalBtn = document.getElementById('closeLoginModalBtn'); // Nút X trên modal
+        const mainCloseLoginModalBtn = document.getElementById('closeLoginModalBtn');
         const loginForm = document.getElementById('loginFormInModal');
         const loginModalErrorMessage = document.getElementById('loginModalErrorMessage');
-
-        // LẤY CSRF TOKEN TỪ THẺ META (NẾU BẠN ĐÃ THÊM THẺ META VÀO HEAD)
-        const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-        const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : null;
 
         function openLoginModal() {
             if (loginModal && modalDialog) {
@@ -602,9 +792,13 @@
                 const headers = {
                     'Content-Type': 'application/json'
                 };
-                // THÊM CSRF TOKEN VÀO HEADER NẾU TỒN TẠI
+                const csrfToken = window.getCsrfToken(); // Lấy CSRF token từ hàm toàn cục
                 if (csrfToken) {
                     headers['X-CSRFToken'] = csrfToken;
+                } else {
+                    console.error("CSRF Token is missing. Cannot proceed with login request.");
+                    alert("A security token is missing. Please refresh the page and try again.");
+                    return;
                 }
 
                 fetch("{{ url_for('login') }}", {

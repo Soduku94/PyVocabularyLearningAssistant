@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block page_content %}
-    <div class="space-y-8"> {# Thêm space-y-8 cho khoảng cách giữa các section lớn #}
+    <div class="space-y-8">
         {% if current_list %}
             {# SECTION 1: Header của trang (Breadcrumbs và các nút hành động cho List) #}
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-6 border-b border-gray-200">
@@ -28,7 +28,6 @@
                         on: {{ current_list.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
                 </nav>
 
-                {# Các nút hành động cho List (Add Words, Play All) #}
                 <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-shrink-0">
                     <a href="{{ url_for('enter_words_page', target_list_id=current_list.id) }}"
                        class="w-full sm:w-auto order-last sm:order-none px-4 py-2 bg-green-500 text-white text-sm font-semibold rounded-md shadow-sm hover:bg-green-600 inline-flex items-center justify-center">
@@ -53,14 +52,13 @@
                         </button>
                     {% endif %}
                 </div>
-            </div> {# Kết thúc div flex của header trang #}
+            </div>
 
             {# SECTION 2: Danh sách các từ vựng #}
             {% if entries and entries|length > 0 %}
                 <div class="space-y-6">
                     {% for entry in entries %}
                         <div class="entry-item bg-white p-5 md:p-6 rounded-lg shadow-md" data-entry-id="{{ entry.id }}">
-                            {# Thêm bg-white và shadow cho mỗi entry card #}
                             <div class="flex flex-col md:flex-row justify-between items-start gap-4">
                                 <div class="flex-grow">
                                     <h3 class="original-word-display text-2xl font-bold text-orange-600 mb-2">{{ entry.original_word }}</h3>
@@ -69,12 +67,6 @@
                                     {% endif %}
                                     <p class="word-type-display text-sm text-gray-600 mb-1">
                                         <strong>Type:</strong> {{ entry.word_type if entry.word_type else 'N/A' }}</p>
-
-                                    {% if entry.example_en and entry.example_en != "N/A" %}
-                                        <p class="text-sm font-medium text-gray-800 mt-3 mb-1">Example Sentence
-                                            (English):</p>
-                                        <p class="example-en-display text-sm text-gray-700 italic mb-2">{{ entry.example_en }}</p>
-                                    {% endif %}
 
                                     {% if entry.definition_en %}
                                         <p class="text-sm font-medium text-gray-800 mt-3 mb-1">English Explanation:</p>
@@ -86,13 +78,27 @@
                                             Explanation:</p>
                                         <p class="definition-vi-display text-sm text-gray-700 mb-2">{{ entry.definition_vi }}</p>
                                     {% endif %}
+                                    {% if entry.example_en and entry.example_en != "N/A" %}
+                                        <p class="text-sm font-medium text-gray-800 mt-3 mb-1">Example Sentence
+                                            (English):</p>
+                                        <p class="example-en-display text-sm text-gray-700 italic mb-2">{{ entry.example_en }}</p>
+                                    {% endif %}
+
+                                    {% if entry.example_vi and entry.example_vi != "Không thể dịch câu ví dụ này." and entry.example_vi != "Không có câu ví dụ." %}
+                                        <p class="text-sm font-medium text-gray-800 mt-3 mb-1">Example Sentence
+                                            (Vietnamese):</p>
+                                        <p class="example-vi-display text-sm text-gray-700 italic mb-2">{{ entry.example_vi }}</p>
+                                    {% endif %}
                                 </div>
-                                <div class="flex flex-row sm:flex-col items-start gap-2 mt-4 md:mt-0 flex-shrink-0 w-full md:w-auto md:max-w-xs">
-                                    {# Các nút sẽ xếp hàng ngang trên mobile, cột trên sm trở lên #}
-                                    <button class="listen-btn w-full md:w-auto text-xs px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center justify-center"
+                                {# KHỐI CÁC NÚT: ĐÃ ĐIỀU CHỈNH CLASSES #}
+                                <div class="flex flex-row md:flex-col items-center justify-end md:justify-start gap-2 mt-4 md:mt-0 flex-shrink-0 w-full md:w-auto">
+                                    {# Sử dụng `items-center` và `justify-end` để căn chỉnh tốt hơn #}
+                                    {# Đảm bảo các nút có độ rộng hợp lý trên cả mobile và desktop #}
+                                    <button class="listen-btn w-full md:w-24 text-xs px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center justify-center"
                                             data-word="{{ entry.original_word }}"
-                                            data-def-vi="{{ entry.definition_vi if entry.definition_vi else '' }}"
-                                            data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}">
+                                            data-def-en="{{ entry.definition_en if entry.definition_en else '' }}"
+                                            data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}"
+                                            >
                                         <svg class="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd"
                                                   d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 11-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z"
@@ -101,13 +107,15 @@
                                         Listen
                                     </button>
                                     <button type="button"
-                                            class="user-edit-entry-btn w-full md:w-auto text-xs px-4 py-2 bg-yellow-400 text-gray-800 rounded-md hover:bg-yellow-500 flex items-center justify-center"
+                                            class="user-edit-entry-btn w-full md:w-24 text-xs px-4 py-2 bg-yellow-400 text-gray-800 rounded-md hover:bg-yellow-500 flex items-center justify-center"
                                             data-entry-id="{{ entry.id }}"
                                             data-original-word="{{ entry.original_word }}"
                                             data-word-type="{{ entry.word_type if entry.word_type else '' }}"
                                             data-def-en="{{ entry.definition_en if entry.definition_en else '' }}"
                                             data-def-vi="{{ entry.definition_vi if entry.definition_vi else '' }}"
-                                            data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}">
+                                            data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}"
+                                            data-example-vi="{{ entry.example_vi if entry.example_vi else '' }}"
+                                            >
                                         <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"
                                              stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -115,9 +123,10 @@
                                         </svg>
                                         Edit
                                     </button>
-                                    <form method="POST" class="w-full md:w-auto"
+                                    <form method="POST" class="w-full md:w-24"
                                           action="{{ url_for('delete_my_vocab_entry', entry_id=entry.id) }}"
                                           onsubmit="return confirm('Delete \'{{ entry.original_word }}\' from this list?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                         <button type="submit"
                                                 class="w-full text-xs px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 flex items-center justify-center">
                                             <svg class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"
@@ -133,7 +142,7 @@
                         </div>
                     {% endfor %}
                 </div>
-            {% elif not entries and current_list %} {# Đã có list nhưng list rỗng #}
+            {% elif not entries and current_list %}
                 <div class="text-center py-10 bg-white rounded-lg shadow-md">
                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                          aria-hidden="true">
@@ -158,7 +167,7 @@
                         </a>
                     </div>
                 </div>
-            {% endif %} {# Kết thúc if entries #}
+            {% endif %}
 
             {# Nút Edit List Name (toàn bộ list) #}
             <div class="mt-10 text-center">
@@ -175,9 +184,10 @@
                 <a href="{{ url_for('my_lists_page') }}" class="text-sm text-orange-600 hover:text-orange-700">&larr;
                     Back to My Lists</a>
             </div>
-        {% endif %} {# Kết thúc if current_list #}
+        {% endif %}
     </div>
 
+    {# MODAL CHO CHỈNH SỬA TỪ VỰNG #}
     <div id="userEditEntryModal"
          class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 hidden modal-backdrop opacity-0">
         <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 ease-in-out scale-95 opacity-0"
@@ -193,6 +203,7 @@
             </div>
             <form id="userEditEntryForm" class="space-y-4">
                 <input type="hidden" name="entry_id_to_edit" id="user_entry_id_to_edit">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
                 <div>
                     <label for="user_edit_original_word" class="block text-sm font-medium text-gray-700">Original Word
@@ -221,6 +232,12 @@
                     <label for="user_edit_example_en" class="block text-sm font-medium text-gray-700">English Example
                         Sentence</label>
                     <textarea name="example_en" id="user_edit_example_en" rows="2"
+                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea>
+                </div>
+                <div>
+                    <label for="user_edit_example_vi" class="block text-sm font-medium text-gray-700">Vietnamese Example
+                        Sentence</label>
+                    <textarea name="example_vi" id="user_edit_example_vi" rows="2"
                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea>
                 </div>
 
@@ -253,6 +270,7 @@
             </div>
             <form id="renameListFormModal">
                 <input type="hidden" id="renameListIdModalInput" name="list_id">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div>
                     <label for="newListNameModalInput" class="block text-sm font-medium text-gray-700 mb-1">New list
                         name:</label>
@@ -277,8 +295,9 @@
 {% block scripts_extra %}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const INTRA_ITEM_SPEECH_DELAY = 750;
-            const INTER_WORD_PLAY_ALL_DELAY = 2500;
+            // Các hằng số INTRA_ITEM_SPEECH_DELAY và INTER_WORD_PLAY_ALL_DELAY
+            // đã được định nghĩa trong base.html và có thể truy cập toàn cục qua 'const'
+            // hoặc 'window.ten_bien'. Không cần định nghĩa lại ở đây.
 
             // --- JavaScript for User Edit Entry Modal ---
             const userEditEntryModal = document.getElementById('userEditEntryModal');
@@ -294,15 +313,18 @@
             const userEditDefEnInput = document.getElementById('user_edit_definition_en');
             const userEditDefViInput = document.getElementById('user_edit_definition_vi');
             const userEditExampleEnInput = document.getElementById('user_edit_example_en');
+            const userEditExampleViInput = document.getElementById('user_edit_example_vi');
+
 
             function openUserEditModal(entryData) {
                 if (userEditEntryModal && userEditEntryDialog) {
                     userEntryIdToEditInput.value = entryData.entryId;
                     userEditOriginalWordInput.value = entryData.originalWord;
-                    userEditWordTypeInput.value = entryData.wordType;
-                    userEditDefEnInput.value = entryData.defEn;
-                    userEditDefViInput.value = entryData.defVi;
-                    userEditExampleEnInput.value = entryData.exampleEn;
+                    userEditWordTypeInput.value = entryData.wordType || '';
+                    userEditDefEnInput.value = entryData.defEn || '';
+                    userEditDefViInput.value = entryData.defVi || '';
+                    userEditExampleEnInput.value = entryData.exampleEn || '';
+                    userEditExampleViInput.value = entryData.exampleVi || '';
 
                     userEditEntryModal.classList.remove('hidden', 'opacity-0');
                     document.body.classList.add('modal-active');
@@ -332,7 +354,8 @@
                         wordType: this.dataset.wordType,
                         defEn: this.dataset.defEn,
                         defVi: this.dataset.defVi,
-                        exampleEn: this.dataset.exampleEn
+                        exampleEn: this.dataset.exampleEn,
+                        exampleVi: this.dataset.exampleVi
                     };
                     openUserEditModal(entryData);
                 });
@@ -353,14 +376,24 @@
                         word_type: userEditWordTypeInput.value.trim(),
                         definition_en: userEditDefEnInput.value.trim(),
                         definition_vi: userEditDefViInput.value.trim(),
-                        example_en: userEditExampleEnInput.value.trim()
+                        example_en: userEditExampleEnInput.value.trim(),
+                        example_vi: userEditExampleViInput.value.trim()
                     };
 
                     const actionUrl = "{{ url_for('edit_my_vocab_entry', entry_id=0) }}".replace('/0', '/' + entryId);
+                    const csrfToken = window.getCsrfToken();
+
+                    if (!csrfToken) {
+                        alert("A security token is missing. Please refresh the page and try again.");
+                        return;
+                    }
 
                     fetch(actionUrl, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
                         body: JSON.stringify(payload)
                     })
                         .then(response => {
@@ -398,19 +431,18 @@
                     closeUserEditModal();
                 }
             });
-            // --- End of JavaScript for User Edit Entry Modal ---
 
-            // --- JavaScript for Rename List Modal (trên trang này) ---
-            const renameListModal = document.getElementById('renameListModal'); // ID của modal đổi tên list
-            const renameListModalDialog = document.getElementById('renameListModalDialog'); // ID của dialog trong modal
-            const renameListFormModal = document.getElementById('renameListFormModal'); // ID của form trong modal
-            const renameListIdInput = document.getElementById('renameListIdModalInput'); // ID của hidden input chứa list_id
-            const newListNameInput = document.getElementById('newListNameModalInput');   // ID của input nhập tên mới
-            const openRenameListButtonsOnDetailPage = document.querySelectorAll('.rename-list-btn'); // Sử dụng class của nút "Edit List Name"
-            const closeRenameListModalBtnOnDetailPage = document.getElementById('closeRenameListModalBtn'); // ID của nút X trên modal đổi tên
-            const cancelRenameListModalBtnOnDetailPage = document.getElementById('cancelRenameListModalBtn'); // ID của nút Cancel trong form đổi tên
+            // --- JavaScript for Rename List Modal ---
+            const renameListModal = document.getElementById('renameListModal');
+            const renameListModalDialog = document.getElementById('renameListModalDialog');
+            const renameListFormModal = document.getElementById('renameListFormModal');
+            const renameListIdInput = document.getElementById('renameListIdModalInput');
+            const newListNameInput = document.getElementById('newListNameModalInput');
+            const openRenameListButtonsOnDetailPage = document.querySelectorAll('.rename-list-btn');
+            const closeRenameListModalBtnOnDetailPage = document.getElementById('closeRenameListModalBtn');
+            const cancelRenameListModalBtnOnDetailPage = document.getElementById('cancelRenameListModalBtn');
 
-            function openRenameListModal() { // Đổi tên hàm cho rõ ràng hơn
+            function openRenameListModal() {
                 if (renameListModal && renameListModalDialog) {
                     renameListModal.classList.remove('hidden', 'opacity-0');
                     document.body.classList.add('modal-active');
@@ -420,7 +452,7 @@
                 }
             }
 
-            function closeRenameListModal() { // Đổi tên hàm
+            function closeRenameListModal() {
                 if (renameListModal && renameListModalDialog) {
                     renameListModalDialog.classList.remove('scale-100', 'opacity-100');
                     renameListModalDialog.classList.add('scale-95', 'opacity-0');
@@ -471,14 +503,23 @@
                         alert('List name cannot be empty.');
                         return;
                     }
-                    // Tạo URL động cho fetch, đảm bảo 'rename_my_list_ajax' là tên endpoint đúng
                     const actionUrl = `{{ url_for('rename_my_list_ajax', list_id=0) }}`.replace('/0', '/' + listId);
+                    const csrfToken = window.getCsrfToken();
+
+                    if (!csrfToken) {
+                        alert("A security token is missing. Please refresh the page and try again.");
+                        return;
+                    }
+
                     fetch(actionUrl, {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json',},
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
                         body: JSON.stringify({new_list_name: newListName})
                     })
-                        .then(response => { /* ... (xử lý response như cũ) ... */
+                        .then(response => {
                             if (!response.ok) {
                                 return response.json().then(err => {
                                     throw err;
@@ -489,28 +530,21 @@
                         .then(data => {
                             if (data.success) {
                                 closeRenameListModal();
-                                // Cập nhật tên list trên trang hiện tại
-                                const listNameDisplay = document.querySelector('h1.text-2xl.md\\:text-3xl.font-semibold.text-gray-800'); // Selector cho tiêu đề list
-                                if (listNameDisplay) { // Cẩn thận, cần selector chính xác hơn nếu có nhiều h1
-                                    const listNameSpan = listNameDisplay.querySelector('span.text-orange-600');
-                                    if (listNameSpan) listNameSpan.textContent = newListName;
-                                    else listNameDisplay.textContent = newListName; // Fallback
-                                }
                                 const breadcrumbCurrent = document.querySelector('nav[aria-label="breadcrumb"] li[aria-current="page"]');
                                 if (breadcrumbCurrent) {
-                                    breadcrumbCurrent.textContent = newListName;
-                                    breadcrumbCurrent.title = newListName;
+                                    breadcrumbCurrent.textContent = data.new_name;
+                                    breadcrumbCurrent.title = data.new_name;
                                 }
                                 const renameButtonOnPage = document.querySelector(`.rename-list-btn[data-list-id="${listId}"]`);
                                 if (renameButtonOnPage) {
-                                    renameButtonOnPage.dataset.currentName = newListName;
+                                    renameButtonOnPage.dataset.currentName = data.new_name;
                                 }
                                 alert(data.message || 'List name updated successfully!');
                             } else {
                                 alert('Error: ' + (data.message || 'Could not rename list.'));
                             }
                         })
-                        .catch(error => { /* ... (xử lý catch như cũ) ... */
+                        .catch(error => {
                             console.error('Error renaming list:', error);
                             let errorMessage = 'An error occurred. Please try again.';
                             if (error && error.message) {
@@ -522,112 +556,30 @@
             }
             // --- End of JavaScript for Rename List Modal ---
 
-            // --- JavaScript for Listen Buttons (CHỈ PHÁT ÂM TỪ GỐC) ---
+            // --- JavaScript for Listen Buttons (trong list_detail.html) ---
             const listenButtons = document.querySelectorAll('.listen-btn');
             listenButtons.forEach(button => {
                 button.addEventListener('click', function () {
-                    console.log("Nút Listen được nhấn cho từ:", this.dataset.word); // DEBUG
                     if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
                         alert('ResponsiveVoice JS chưa sẵn sàng hoặc trình duyệt không hỗ trợ. Vui lòng kiểm tra lại hoặc thử làm mới trang.');
                         console.error('ResponsiveVoice object not ready or voice support failed.');
                         return;
                     }
 
-                    const wordToSpeak = this.dataset.word; // Chỉ lấy từ gốc để phát âm
+                    const word = this.dataset.word;
+                    const definitionEn = this.dataset.defEn;
+                    const exampleEn = this.dataset.exampleEn;
 
-                    if (wordToSpeak && wordToSpeak.trim() !== "") {
-                        responsiveVoice.cancel(); // Hủy các lượt phát âm trước đó (nếu có)
-                        console.log("Đang phát âm từ:", wordToSpeak);
-                        responsiveVoice.speak(wordToSpeak, "UK English Male", {
-                            onstart: function () {
-                                console.log("Bắt đầu phát âm:", wordToSpeak);
-                            },
-                            onend: function () {
-                                console.log("Kết thúc phát âm:", wordToSpeak);
-                            },
-                            onerror: function (e) {
-                                console.error("Lỗi khi phát âm:", wordToSpeak, e);
-                                alert("Lỗi khi phát âm từ: " + wordToSpeak);
-                            }
-                        });
-                    } else {
-                        alert("Không có từ hợp lệ để phát âm.");
-                    }
+                    window.speakEntryContent(word, definitionEn, exampleEn);
                 });
             });
-            // --- End of JavaScript for Listen Buttons ---
 
-            // --- JavaScript for Play All Button (CHỈ ĐỌC TỪ TIẾNG ANH GỐC) ---
-            const playAllButton = document.getElementById('playAllBtn');
-            if (playAllButton) {
-                playAllButton.addEventListener('click', function () {
-                    console.log("Nút Play All được nhấn!"); // DEBUG
-                    if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
-                        alert('ResponsiveVoice JS chưa sẵn sàng hoặc trình duyệt không hỗ trợ.');
-                        console.error('ResponsiveVoice object not ready or voice support failed (Play All).');
-                        return;
-                    }
+            // --- GỌI HÀM SETUP PLAY ALL BUTTON TẠI ĐÂY ---
+            // 'playAllBtn' là ID của nút Play All trên trang này.
+            // '.entry-item' là selector để tìm các khối thông tin của từng từ.
+            // Hàm này được định nghĩa trong base.html và cần được gọi để kích hoạt nút.
+            window.setupPlayAllButton('playAllBtn', '.entry-item');
 
-                    let uniqueWordsToPlay = new Set();
-                    // Cách lấy từ cho Play All có thể khác nhau giữa enter_words.html và list_detail.html
-                    // Cách 1: Dựa vào các từ gốc hiển thị (ví dụ: thẻ h3 trong summary của enter_words.html)
-                    // const displayedWordElements = document.querySelectorAll('details > summary > h3.text-orange-600');
-                    // displayedWordElements.forEach(wordElement => {
-                    //     const word = wordElement.textContent.trim();
-                    //     if (word) { uniqueWordsToPlay.add(word); }
-                    // });
-
-                    // Cách 2: Dựa vào data-word của tất cả các nút .listen-btn trên trang (an toàn hơn nếu cấu trúc HTML thay đổi)
-                    const allListenButtons = document.querySelectorAll('.listen-btn');
-                    allListenButtons.forEach(button => {
-                        const word = button.dataset.word;
-                        if (word && word.trim() !== "") {
-                            uniqueWordsToPlay.add(word);
-                        }
-                    });
-                    console.log("Các từ sẽ được Play All (unique):", Array.from(uniqueWordsToPlay)); // DEBUG
-
-                    if (uniqueWordsToPlay.size === 0) {
-                        alert('Không có từ nào để phát âm.');
-                        return;
-                    }
-
-                    responsiveVoice.cancel(); // Hủy các lượt phát âm trước đó
-                    let masterPlayQueue = Array.from(uniqueWordsToPlay); // Chuyển Set thành Array
-                    let currentMasterIndex = 0;
-
-                    function playNextInMasterQueue() {
-                        if (currentMasterIndex < masterPlayQueue.length) {
-                            let currentPlayItemText = masterPlayQueue[currentMasterIndex];
-                            console.log("Play All - Đang phát âm:", currentPlayItemText);
-                            responsiveVoice.speak(currentPlayItemText, "UK English Male", {
-                                onstart: function () {
-                                    console.log("Play All - Bắt đầu:", currentPlayItemText);
-                                },
-                                onend: function () {
-                                    console.log("Play All - Kết thúc:", currentPlayItemText);
-                                    currentMasterIndex++;
-                                    setTimeout(playNextInMasterQueue, INTER_WORD_PLAY_ALL_DELAY); // INTER_WORD_PLAY_ALL_DELAY đã định nghĩa ở đầu script
-                                },
-                                onerror: function (e) {
-                                    console.error("Play All - Lỗi khi phát âm:", currentPlayItemText, e);
-                                    // Có thể quyết định dừng hoặc bỏ qua từ lỗi và tiếp tục
-                                    currentMasterIndex++;
-                                    setTimeout(playNextInMasterQueue, INTER_WORD_PLAY_ALL_DELAY); // Tiếp tục với từ tiếp theo
-                                }
-                            });
-                        } else {
-                            console.log("Play All đã hoàn tất.");
-                        }
-                    }
-
-                    if (masterPlayQueue.length > 0) {
-                        playNextInMasterQueue();
-                    }
-                    // Không cần alert ở đây nữa vì đã kiểm tra uniqueWordsToPlay.size ở trên
-                });
-            }
-            // --- End of JavaScript for Play All Button ---
         });
     </script>
 {% endblock %}

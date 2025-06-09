@@ -20,17 +20,11 @@
         {% endif %}
 
         <form method="POST" action="{{ url_for('enter_words_page') }}">
-            {{ form.hidden_tag() }} {# <<< THÊM DÒNG NÀY ĐỂ CÓ CSRF TOKEN VÀ HIDDEN FIELDS #}
-
-            {# Không cần hidden input target_list_id_on_post ở đây nữa nếu đã có trong class Form #}
-            {# {% if target_list_info %}
-        <input type="hidden" name="target_list_id_on_post" value="{{ target_list_info.id }}">
-        {% endif %} #}
+            {{ form.hidden_tag() }}
 
             <div class="mb-4">
                 {{ form.words_input.label(class="block text-sm font-medium text-gray-700 mb-1") }}
                 {{ form.words_input(rows="3", id="words_input", class="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500", placeholder="Consider, coast, develop, ...") }}
-                {# Bỏ value ở đây, WTForms tự xử lý #}
                 {% if form.words_input.errors %}
                     <ul class="text-red-500 text-xs mt-1 list-disc list-inside">
                         {% for error in form.words_input.errors %}
@@ -41,17 +35,16 @@
             {{ form.submit(id="generateBtn", class="px-6 py-2.5 bg-orange-500 text-white font-medium text-sm rounded-md shadow-sm hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500") }}
         </form>
 
-        {% if results and results|length > 0 %} {# Thêm kiểm tra results không rỗng #}
+        {% if results and results|length > 0 %}
             <hr class="my-8">
-            <div id="resultsContainer"> {# Thêm một container cho results để dễ dàng xóa nội dung #}
+            <div id="resultsContainer">
                 <h2 class="text-xl font-semibold text-gray-700 mb-4">Results:</h2>
                 {% for word, word_definition_list in results.items() %}
                     <details class="mb-4 group" {% if loop.first %}open{% endif %}>
                         <summary
                                 class="flex items-center justify-between p-4 bg-gray-100 rounded-t-lg cursor-pointer hover:bg-gray-200">
-                            <div> {# Sử dụng div để nhóm từ và IPA #}
+                            <div>
                                 <h3 class="text-lg font-medium text-orange-600 inline">{{ word }}</h3>
-                                {# HIỂN THỊ IPA NGAY SAU TỪ GỐC #}
                                 {% if word_definition_list and word_definition_list[0].ipa and word_definition_list[0].ipa != "N/A" %}
                                     <span class="ml-2 text-sm text-purple-600 italic">/{{ word_definition_list[0].ipa }}/</span>
                                 {% endif %}
@@ -63,40 +56,36 @@
                                 {% for def_item in word_definition_list %}
                                     <div class="mb-5 pb-5 border-b border-gray-200 last:border-b-0 last:pb-0 last:mb-0">
 
-                                        {# 1. Loại từ #}
                                         <p class="text-sm text-gray-500 mb-1"><strong>Type:</strong> {{ def_item.type }}
                                         </p>
-                                        {# 3. Câu giải thích nghĩa của từ đó bằng tiếng Anh #}
                                         {% if def_item.definition_en %}
                                             <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">English
                                                 Meaning:</p>
-                                            <p class="text-sm text-gray-700 mb-1">{{ def_item.definition_en }}</p>
+                                            <p class="definition-en-display text-sm text-gray-700 mb-1">{{ def_item.definition_en }}</p>
                                         {% endif %}
 
-                                        {# 4. Câu giải thích nghĩa của từ đó bằng tiếng Việt #}
                                         {% if def_item.definition_vi %}
                                             <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">Vietnamese
                                                 Meaning:</p>
                                             <p class="text-sm text-gray-700 mb-2">{{ def_item.definition_vi }}</p>
                                         {% endif %}
-                                        {# 2. Ví dụ dùng từ đó trong một câu cụ thể (tiếng Anh) #}
                                         {% if def_item.example_sentence and def_item.example_sentence != "N/A" %}
                                             <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">Example Sentence
                                                 (English):</p>
-                                            {# Cố gắng làm nổi bật từ gốc. Lưu ý: cách replace này là cơ bản. #}
                                             {% set highlighted_example = def_item.example_sentence | replace(word, "<strong><em>" + word + "</em></strong>") %}
-                                            {# Thử với cả trường hợp viết hoa đầu từ #}
                                             {% set highlighted_example = highlighted_example | replace(word|capitalize, "<strong><em>" + word|capitalize + "</em></strong>") %}
-                                            <p class="text-sm text-gray-600 italic mb-2">{{ highlighted_example | safe }}</p>
+                                            <p class="example-en-display text-sm text-gray-600 italic mb-2">{{ highlighted_example | safe }}</p>
                                         {% endif %}
-
-
-
+                                        {% if def_item.example_sentence_vi and def_item.example_sentence_vi != "Không thể dịch câu ví dụ này." and def_item.example_sentence_vi != "Không có câu ví dụ." %}
+                                            <p class="text-sm font-semibold text-gray-700 mt-2 mb-1">Example Sentence
+                                                (Vietnamese):</p>
+                                            <p class="text-sm text-gray-600 italic mb-2">{{ def_item.example_sentence_vi }}</p>
+                                        {% endif %}
 
                                         <div class="mt-3">
                                             <button class="listen-btn text-xs px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2"
                                                     data-word="{{ word }}"
-                                                    data-def-vi="{{ def_item.definition_vi if def_item.definition_vi else '' }}"
+                                                    data-def-en="{{ def_item.definition_en if def_item.definition_en else '' }}"
                                                     data-example-en="{{ def_item.example_sentence if def_item.example_sentence and def_item.example_sentence != 'N/A' else '' }}">
                                                 <svg xmlns="http://www.w3.org/2000/svg"
                                                      class="h-4 w-4 inline-block mr-1"
@@ -118,8 +107,7 @@
                     </details>
                 {% endfor %}
 
-                <div id="actionButtonsContainer" class="mt-6 mb-4 flex justify-between items-center"> {# Container cho các nút
-            Play All và Save #}
+                <div id="actionButtonsContainer" class="mt-6 mb-4 flex justify-between items-center">
                     <button type="button" id="playAllBtn"
                             class="px-5 py-2.5 bg-green-500 text-white text-sm font-medium rounded-md shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 inline-flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20"
@@ -136,8 +124,7 @@
                     </button>
                 </div>
             </div>
-            {# Kết thúc div#resultsContainer #}
-        {% endif %} {# Kết thúc if results #}
+        {% endif %}
     </div>
 
     <div id="saveListModal"
@@ -155,7 +142,7 @@
             </div>
 
             <div id="saveListModalContent" class="space-y-4">
-                <div id="saveOptionRadioContainer"> {# Sẽ bị ẩn nếu targetListInfo tồn tại #}
+                <div id="saveOptionRadioContainer">
                     <div>
                         <input type="radio" id="saveOptionNewList" name="save_option" value="new"
                                class="form-radio h-4 w-4 text-orange-600" checked>
@@ -171,7 +158,7 @@
                     {% endif %}
                 </div>
 
-                <div id="newListNameContainer"> {# Sẽ bị ẩn nếu targetListInfo tồn tại hoặc chọn existing #}
+                <div id="newListNameContainer">
                     <label for="listNameInputModal" class="block text-sm font-medium text-gray-700">New list
                         name:</label>
                     <input type="text" id="listNameInputModal" name="list_name_modal"
@@ -180,8 +167,7 @@
                 </div>
 
                 {% if user_info and user_existing_lists and user_existing_lists|length > 0 %}
-                    <div id="existingListSelectContainer" class="hidden"> {# Sẽ hiện nếu chọn existing và không có
-                targetListInfo #}
+                    <div id="existingListSelectContainer" class="hidden">
                         <label for="existing_list_select" class="block text-sm font-medium text-gray-700">Select a
                             list:</label>
                         <select id="existing_list_select" name="existing_list_id_modal"
@@ -213,8 +199,6 @@
 {% block scripts_extra %}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const INTRA_ITEM_SPEECH_DELAY = 750;
-            const INTER_WORD_PLAY_ALL_DELAY = 2500;
 
 
             const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]'); // Giả sử thẻ meta này có trong base.html
@@ -241,6 +225,7 @@
 
             // ĐÃ SỬA LỖI CÚ PHÁP Ở ĐÂY:
             const targetListInfo = {{ target_list_info | tojson | safe if target_list_info else 'null' }};
+
 
             function openSaveModal() {
                 if (saveListModal && saveListDialog) {
@@ -384,7 +369,7 @@
                     });
             }
 
-            if (saveToMyListBtn) {
+         if (saveToMyListBtn) {
                 saveToMyListBtn.addEventListener('click', function () {
                     const vocabularyDataToSave = {{ results | tojson | safe if results else '{}' }};
 
@@ -403,7 +388,8 @@
                                 definition_en: firstDefinitionSet.definition_en,
                                 definition_vi: firstDefinitionSet.definition_vi,
                                 example_en: firstDefinitionSet.example_sentence,
-                                ipa: firstDefinitionSet.ipa
+                                ipa: firstDefinitionSet.ipa,
+                                example_sentence_vi: firstDefinitionSet.example_sentence_vi // <<< THÊM DÒNG NÀY
                             });
                         }
                     }
@@ -443,7 +429,8 @@
                                 word_type: firstDefinitionSet.type,
                                 definition_en: firstDefinitionSet.definition_en,
                                 definition_vi: firstDefinitionSet.definition_vi,
-                                example_en: firstDefinitionSet.example_sentence
+                                example_en: firstDefinitionSet.example_sentence,
+                                example_sentence_vi: firstDefinitionSet.example_sentence_vi // <<< THÊM DÒNG NÀY
                             });
                         }
                     }
@@ -544,111 +531,34 @@
                 }
             });
 
-            // --- JavaScript for Listen Buttons (CHỈ PHÁT ÂM TỪ GỐC) ---
+
+            // --- JavaScript for Listen Buttons (trong enter_words.html và list_detail.html) ---
+            // Giả định bạn đã có hàm này và đã truyền data-word, data-def-en, data-example-en
             const listenButtons = document.querySelectorAll('.listen-btn');
             listenButtons.forEach(button => {
                 button.addEventListener('click', function () {
-                    console.log("Nút Listen được nhấn cho từ:", this.dataset.word); // DEBUG
                     if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
                         alert('ResponsiveVoice JS chưa sẵn sàng hoặc trình duyệt không hỗ trợ. Vui lòng kiểm tra lại hoặc thử làm mới trang.');
                         console.error('ResponsiveVoice object not ready or voice support failed.');
                         return;
                     }
 
-                    const wordToSpeak = this.dataset.word; // Chỉ lấy từ gốc để phát âm
+                    const word = this.dataset.word;
+                    const definitionEn = this.dataset.defEn;
+                    const exampleEn = this.dataset.exampleEn;
 
-                    if (wordToSpeak && wordToSpeak.trim() !== "") {
-                        responsiveVoice.cancel(); // Hủy các lượt phát âm trước đó (nếu có)
-                        console.log("Đang phát âm từ:", wordToSpeak);
-                        responsiveVoice.speak(wordToSpeak, "UK English Male", {
-                            onstart: function () {
-                                console.log("Bắt đầu phát âm:", wordToSpeak);
-                            },
-                            onend: function () {
-                                console.log("Kết thúc phát âm:", wordToSpeak);
-                            },
-                            onerror: function (e) {
-                                console.error("Lỗi khi phát âm:", wordToSpeak, e);
-                                alert("Lỗi khi phát âm từ: " + wordToSpeak);
-                            }
-                        });
-                    } else {
-                        alert("Không có từ hợp lệ để phát âm.");
-                    }
+                    // Gọi hàm speakEntryContent toàn cục từ base.html
+                    window.speakEntryContent(word, definitionEn, exampleEn);
                 });
             });
-            // --- End of JavaScript for Listen Buttons ---
-            // --- JavaScript for Play All Button (CHỈ ĐỌC TỪ TIẾNG ANH GỐC) ---
-            const playAllButton = document.getElementById('playAllBtn');
-            if (playAllButton) {
-                playAllButton.addEventListener('click', function () {
-                    console.log("Nút Play All được nhấn!"); // DEBUG
-                    if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
-                        alert('ResponsiveVoice JS chưa sẵn sàng hoặc trình duyệt không hỗ trợ.');
-                        console.error('ResponsiveVoice object not ready or voice support failed (Play All).');
-                        return;
-                    }
 
-                    let uniqueWordsToPlay = new Set();
-                    // Cách lấy từ cho Play All có thể khác nhau giữa enter_words.html và list_detail.html
-                    // Cách 1: Dựa vào các từ gốc hiển thị (ví dụ: thẻ h3 trong summary của enter_words.html)
-                    // const displayedWordElements = document.querySelectorAll('details > summary > h3.text-orange-600');
-                    // displayedWordElements.forEach(wordElement => {
-                    //     const word = wordElement.textContent.trim();
-                    //     if (word) { uniqueWordsToPlay.add(word); }
-                    // });
+            // --- GỌI HÀM SETUP PLAY ALL BUTTON TẠI ĐÂY ---
+            // 'playAllBtn' là ID của nút Play All trên trang này.
+            // '#resultsContainer details' là selector để tìm các khối thông tin của từng từ.
+            // Hàm này được định nghĩa trong base.html và cần được gọi để kích hoạt nút.
+            window.setupPlayAllButton('playAllBtn', '#resultsContainer details');
 
-                    // Cách 2: Dựa vào data-word của tất cả các nút .listen-btn trên trang (an toàn hơn nếu cấu trúc HTML thay đổi)
-                    const allListenButtons = document.querySelectorAll('.listen-btn');
-                    allListenButtons.forEach(button => {
-                        const word = button.dataset.word;
-                        if (word && word.trim() !== "") {
-                            uniqueWordsToPlay.add(word);
-                        }
-                    });
-                    console.log("Các từ sẽ được Play All (unique):", Array.from(uniqueWordsToPlay)); // DEBUG
 
-                    if (uniqueWordsToPlay.size === 0) {
-                        alert('Không có từ nào để phát âm.');
-                        return;
-                    }
-
-                    responsiveVoice.cancel(); // Hủy các lượt phát âm trước đó
-                    let masterPlayQueue = Array.from(uniqueWordsToPlay); // Chuyển Set thành Array
-                    let currentMasterIndex = 0;
-
-                    function playNextInMasterQueue() {
-                        if (currentMasterIndex < masterPlayQueue.length) {
-                            let currentPlayItemText = masterPlayQueue[currentMasterIndex];
-                            console.log("Play All - Đang phát âm:", currentPlayItemText);
-                            responsiveVoice.speak(currentPlayItemText, "UK English Male", {
-                                onstart: function () {
-                                    console.log("Play All - Bắt đầu:", currentPlayItemText);
-                                },
-                                onend: function () {
-                                    console.log("Play All - Kết thúc:", currentPlayItemText);
-                                    currentMasterIndex++;
-                                    setTimeout(playNextInMasterQueue, INTER_WORD_PLAY_ALL_DELAY); // INTER_WORD_PLAY_ALL_DELAY đã định nghĩa ở đầu script
-                                },
-                                onerror: function (e) {
-                                    console.error("Play All - Lỗi khi phát âm:", currentPlayItemText, e);
-                                    // Có thể quyết định dừng hoặc bỏ qua từ lỗi và tiếp tục
-                                    currentMasterIndex++;
-                                    setTimeout(playNextInMasterQueue, INTER_WORD_PLAY_ALL_DELAY); // Tiếp tục với từ tiếp theo
-                                }
-                            });
-                        } else {
-                            console.log("Play All đã hoàn tất.");
-                        }
-                    }
-
-                    if (masterPlayQueue.length > 0) {
-                        playNextInMasterQueue();
-                    }
-                    // Không cần alert ở đây nữa vì đã kiểm tra uniqueWordsToPlay.size ở trên
-                });
-            }
-            // --- End of JavaScript for Play All Button ---
         });
     </script>
 {% endblock %}

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hoàn tất cài đặt tài khoản - G-Easy English</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gOrange: '#FFA500',
+                        gLightOrange: '#FFDDB2',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<div class="bg-white p-8 md:p-12 rounded-xl shadow-2xl w-full max-w-md">
+    <div class="text-center mb-8">
+        <a href="{{ url_for('home') }}" class="text-3xl font-bold text-orange-500">G-EASY</a>
+        <p class="text-sm text-gray-500">ENGLISH</p>
+        <h2 class="text-2xl font-semibold text-gray-700 mt-4">Hoàn tất cài đặt tài khoản</h2>
+        <p class="text-gray-600 text-sm mt-2">
+            Chào mừng bạn, <strong>{{ name if name else email }}</strong>!
+            Vui lòng đặt mật khẩu để có thể đăng nhập bằng email của bạn sau này.
+        </p>
+    </div>
+
+    {# Hiển thị thông báo flash #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="p-4 mb-4 text-sm rounded-lg
+                        {% if category == 'danger' %} bg-red-100 text-red-700
+                        {% elif category == 'success' %} bg-green-100 text-green-700
+                        {% elif category == 'warning' %} bg-yellow-100 text-yellow-700
+                        {% else %} bg-blue-100 text-blue-700
+                        {% endif %}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <form method="POST" action="{{ url_for('google_complete_setup_page') }}" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/> {# THÊM DÒNG NÀY VÀO ĐÂY #}
+
+        {# Hiển thị email (chỉ đọc) #}
+        <div>
+            <label for="email_display" class="block text-sm font-medium text-gray-700">Email của bạn:</label>
+            <input type="email" id="email_display" value="{{ email }}" readonly
+                   class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 cursor-not-allowed sm:text-sm">
+        </div>
+
+        <div>
+            <label for="new_password" class="block text-sm font-medium text-gray-700">Mật khẩu mới</label>
+            <input type="password" name="new_password" id="new_password" required autocomplete="new-password"
+                   class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+        </div>
+        <div>
+            <label for="confirm_password" class="block text-sm font-medium text-gray-700">Xác nhận Mật khẩu mới</label>
+            <input type="password" name="confirm_password" id="confirm_password" required autocomplete="new-password"
+                   class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
+        </div>
+
+        <div>
+            <button type="submit"
+                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
+                Đặt Mật khẩu và Đăng nhập
+            </button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

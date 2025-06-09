@@ -1,3 +1,5 @@
+# models.py
+
 # --- Standard Library Imports ---
 from datetime import datetime  # Để làm việc với ngày giờ, ví dụ: default=datetime.utcnow
 
@@ -31,10 +33,8 @@ class User(db.Model):
     # --- Các cột của bảng User ---
     id = db.Column(db.Integer, primary_key=True)  # Khóa chính, tự động tăng
     name = db.Column(db.String(100), nullable=True)  # Tên gốc của người dùng (từ Google hoặc form đăng ký)
-    # nullable=True: cho phép giá trị NULL (ví dụ nếu chỉ có email)
     email = db.Column(db.String(120), unique=True, nullable=False)  # Email, bắt buộc và không trùng lặp
     password_hash = db.Column(db.String(256), nullable=True)  # Hash của mật khẩu (nếu đăng ký bằng form)
-    # nullable=True: cho phép NULL (nếu đăng nhập bằng Google và chưa đặt mật khẩu hệ thống)
     google_id = db.Column(db.String(100), unique=True,
                           nullable=True)  # ID người dùng từ Google (nếu đăng nhập bằng Google)
     picture_url = db.Column(db.String(255), nullable=True)  # URL ảnh đại diện (từ Google hoặc sau này cho phép upload)
@@ -43,21 +43,18 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)  # Cờ xác định người dùng có phải Admin không
     display_name = db.Column(db.String(100), nullable=True)  # Tên hiển thị tùy chỉnh của người dùng
     is_blocked = db.Column(db.Boolean, default=False, nullable=False)  # Cờ xác định tài khoản có bị Admin chặn không
-    # Sửa lại nullable=False nếu bạn muốn nó luôn có giá trị (mặc định là False)
 
     # --- Mối quan hệ (Relationships) ---
     # Một User có thể tạo nhiều VocabularyList.
     # backref='user': Tạo một thuộc tính 'user' trong model VocabularyList để truy cập ngược lại User sở hữu.
     # lazy=True: Các VocabularyList liên quan sẽ được tải khi cần thiết, không tải ngay khi query User.
-    # cascade="all, delete-orphan":
-    #   - 'all': Các thao tác (như delete) trên User sẽ được áp dụng cho các VocabularyList liên quan.
-    #   - 'delete-orphan': Nếu một VocabularyList không còn được liên kết với User nào, nó sẽ bị xóa.
+    # cascade="all, delete-orphan": Khi một User bị xóa, tất cả các VocabularyList liên quan cũng sẽ bị xóa.
     vocabulary_lists = db.relationship('VocabularyList', backref='user', lazy=True, cascade="all, delete-orphan")
 
-    # (Tùy chọn) Một User có thể có nhiều VocabularyEntry trực tiếp (nếu bạn muốn truy vấn tất cả các từ của user
-    # mà không cần qua VocabularyList). Tuy nhiên, hiện tại mỗi VocabularyEntry đã có user_id, nên có thể không cần relationship này.
-    # vocabulary_entries = db.relationship('VocabularyEntry', backref='user_owner', lazy=True, cascade="all, delete-orphan") 
+    # (Tùy chọn) Một User có thể có nhiều VocabularyEntry trực tiếp.
+    # Nếu bạn muốn truy vấn tất cả các từ của user mà không cần qua VocabularyList.
     # Nếu dùng, cần đổi tên backref để không trùng với backref của VocabularyList.
+    # vocabulary_entries = db.relationship('VocabularyEntry', backref='user_entries_owner', lazy=True, cascade="all, delete-orphan")
 
     # --- Các phương thức của Model User ---
     def set_password(self, password):
@@ -84,13 +81,14 @@ class VocabularyList(db.Model):
     name = db.Column(db.String(150), nullable=False)  # Tên của danh sách từ vựng, bắt buộc
     created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Thời điểm danh sách được tạo
 
+
     # Khóa ngoại user_id: Liên kết danh sách này với một User cụ thể.
     # db.ForeignKey('user.id') trỏ đến cột 'id' của bảng 'user'.
     # nullable=False: Mỗi danh sách phải thuộc về một User.
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     # Mối quan hệ: Một VocabularyList có thể chứa nhiều VocabularyEntry.
-    # backref='vocabulary_list': Tạo một thuộc tính 'vocabulary_list' trong model VocabularyEntry 
+    # backref='vocabulary_list': Tạo một thuộc tính 'vocabulary_list' trong model VocabularyEntry
     #                            để truy cập ngược lại VocabularyList chứa nó.
     # lazy=True: Các VocabularyEntry liên quan sẽ được tải khi cần.
     # cascade="all, delete-orphan": Khi một VocabularyList bị xóa, tất cả các VocabularyEntry
@@ -119,6 +117,7 @@ class VocabularyEntry(db.Model):
     example_en = db.Column(db.Text, nullable=True)  # Câu ví dụ tiếng Anh
     # example_vi = db.Column(db.Text, nullable=True)         # (Tùy chọn) Nghĩa câu ví dụ tiếng Việt
     added_at = db.Column(db.DateTime, default=datetime.utcnow)  # Thời điểm mục từ được thêm vào
+    example_vi = db.Column(db.Text, nullable=True)
 
     # Khóa ngoại list_id: Liên kết mục từ này với một VocabularyList cụ thể.
     list_id = db.Column(db.Integer, db.ForeignKey('vocabulary_list.id'), nullable=False)
@@ -129,6 +128,7 @@ class VocabularyEntry(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     def __repr__(self):
+        """Biểu diễn đối tượng VocabularyEntry dưới dạng chuỗi (hữu ích khi debug)."""
         return f'<VocabularyEntry {self.id} - "{self.original_word}" in List ID {self.list_id}>'
 
 
@@ -155,6 +155,7 @@ class APILog(db.Model):
     # logged_by_user = db.relationship('User', backref=db.backref('api_logs', lazy='dynamic'))
 
     def __repr__(self):
+        """Biểu diễn đối tượng APILog dưới dạng chuỗi (hữu ích khi debug)."""
         return f'<APILog ID {self.id} - API: {self.api_name} at {self.timestamp} Success: {self.success}>'
 
 
