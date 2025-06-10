@@ -2271,77 +2271,51 @@ def admin_edit_vocab_entry_route(entry_id):
         return jsonify({"success": False, "message": f"Lỗi server khi cập nhật mục từ: {str(e)}"}), 500
 
 
-@app.route('/admin/api-logs')  # Định nghĩa route URL, ví dụ: /admin/api-logs
-@admin_required  # Đảm bảo chỉ người dùng có quyền Admin mới có thể truy cập route này
+@app.route('/admin/api-logs')
+@admin_required
 def admin_api_logs_page():
-    """
-    Hiển thị trang log các lần gọi API cho Admin.
-    Bao gồm danh sách các log gần đây và một số thông tin thống kê cơ bản.
-    """
-
-    # 1. Lấy thông tin của Admin đang đăng nhập.
-    #    Thông tin này thường được dùng để hiển thị ở header hoặc sidebar chung của trang (trong base.html).
     admin_user_info = get_current_user_info()
-    # Hàm get_current_user_info() cần trả về một dictionary chứa thông tin người dùng hiện tại.
 
-    # 2. Lấy các bản ghi log API từ database.
-    #    Sắp xếp theo thời gian (timestamp) giảm dần (mới nhất lên đầu).
-    #    Giới hạn số lượng log lấy ra (ví dụ: 200 log gần nhất) để tránh tải quá nhiều dữ liệu.
-    #    Sau này, bạn có thể thêm phân trang (pagination) ở đây nếu số lượng log quá lớn.
-    logs = APILog.query.order_by(APILog.timestamp.desc()).limit(200).all()
+    # --- PHÂN TRANG (PAGINATION) ---
+    page = request.args.get('page', 1, type=int) # Lấy số trang từ URL (mặc định là 1)
+    per_page = 10 # Số lượng log trên mỗi trang (bạn có thể thay đổi, ví dụ 20, 50, 100)
 
-    # 3. Tính toán một số thông kê cơ bản về việc sử dụng API.
-    #    3a. Tổng số lượt gọi API đã được ghi log.
+    # Lấy các bản ghi log API từ database với phân trang
+    # paginate() trả về một đối tượng Pagination
+    # .options(db.load_only(APILog.id, APILog.api_name, ...)) # Tùy chọn: chỉ tải các cột cần thiết để tối ưu
+    pagination = APILog.query.order_by(APILog.timestamp.desc()).paginate(
+        page=page,
+        per_page=per_page,
+        error_out=False # Nếu page number không hợp lệ, không báo lỗi 404
+    )
+
+    logs = pagination.items # Lấy danh sách các log cho trang hiện tại
+
+    # --- THỐNG KÊ TỔNG QUAN (GIỮ NGUYÊN) ---
     total_calls = APILog.query.count()
-
-    #    3b. Tổng số lượt gọi API thành công.
     successful_calls = APILog.query.filter_by(success=True).count()
+    failed_calls = total_calls - successful_calls
 
-    #    3c. Tổng số lượt gọi API thất bại.
-    failed_calls = total_calls - successful_calls  # Hoặc APILog.query.filter_by(success=False).count()
-
-    #    3d. Thống kê số lượt gọi, thành công, thất bại cho từng loại API (api_name).
-    #        Sử dụng db.session.query với các hàm tổng hợp (func.count, func.sum) và group_by.
-    #        Hàm case được dùng để đếm có điều kiện (đếm là 1 nếu success=True/False, ngược lại là 0).
-    #        Cần import 'func' và 'case' từ 'sqlalchemy' và 'sqlalchemy.sql' tương ứng.
     calls_by_api_name = db.session.query(
-        APILog.api_name,  # Tên API
-        func.count(APILog.id).label('count'),  # Tổng số lượt gọi cho API này (đổi thành count(APILog.id) cho rõ ràng)
-        func.sum(case((APILog.success == True, 1), else_=0)).label('successful'),  # Số lượt thành công
-        func.sum(case((APILog.success == False, 1), else_=0)).label('failed')  # Số lượt thất bại
-    ).group_by(APILog.api_name).all()  # Nhóm kết quả theo api_name
+        APILog.api_name,
+        func.count(APILog.id).label('count'),
+        func.sum(case((APILog.success == True, 1), else_=0)).label('successful'),
+        func.sum(case((APILog.success == False, 1), else_=0)).label('failed')
+    ).group_by(APILog.api_name).all()
 
-    # (Ghi chú về cách thay thế đơn giản hơn cho calls_by_api_name nếu cách trên phức tạp:
-    #  Bạn có thể lặp qua các tên API duy nhất và query riêng cho mỗi tên,
-    #  nhưng cách dùng group_by thường hiệu quả hơn về mặt truy vấn database.)
-    #  Ví dụ:
-    #  calls_by_api_name_simple = {}
-    #  distinct_api_names = db.session.query(APILog.api_name).distinct().all()
-    #  for name_tuple in distinct_api_names:
-    #      name = name_tuple[0]
-    #      calls_by_api_name_simple[name] = {
-    #          'total': APILog.query.filter_by(api_name=name).count(),
-    #          'successful': APILog.query.filter_by(api_name=name, success=True).count(),
-    #          'failed': APILog.query.filter_by(api_name=name, success=False).count()
-    #      }
-
-    # 4. Tạo một dictionary chứa tất cả các thông tin thống kê.
     stats = {
         "total_calls": total_calls,
         "successful_calls": successful_calls,
         "failed_calls": failed_calls,
-        "calls_by_api_name": calls_by_api_name  # Sử dụng kết quả từ group_by query
+        "calls_by_api_name": calls_by_api_name
     }
 
-    # 5. Render template 'admin/api_logs.html' và truyền các dữ liệu cần thiết vào:
-    #    - user_info: Thông tin của Admin đang đăng nhập (cho base.html).
-    #    - logs: Danh sách các bản ghi log API gần đây.
-    #    - stats: Dictionary chứa các thông tin thống kê.
+    # --- TRUYỀN DỮ LIỆU VÀO TEMPLATE ---
     return render_template('admin/api_logs.html',
                            user_info=admin_user_info,
                            logs=logs,
-                           stats=stats)
-
+                           stats=stats,
+                           pagination=pagination) # TRUYỀN ĐỐI TƯỢNG PHÂN TRANG MỚI VÀO
 
 @app.route('/my-lists/<int:list_id_to_delete>/delete', methods=['POST'])
 # @login_required # Nếu bạn đã có decorator này, hãy sử dụng nó ở đây để thay thế cho kiểm tra session thủ công
@@ -2574,6 +2548,7 @@ def dashboard_page():
     log_user_activity(current_user_db_id, 'accessed_dashboard_page')
     # 1. Kiểm tra xem người dùng đã đăng nhập chưa.
     current_user_db_id = session.get("db_user_id")
+    user = User.query.get(current_user_db_id)
     if not current_user_db_id:
         # Nếu chưa đăng nhập, hiển thị thông báo và chuyển hướng về trang chủ,
         # có thể kèm tham số để JavaScript tự mở modal đăng nhập.
@@ -2654,6 +2629,27 @@ def dashboard_page():
         UserActivity.timestamp <= end_of_last_month
     ).count()
 
+    # THÊM ĐIỀU KIỆN KIỂM TRA NGƯỜI DÙNG CŨ HAY MỚI
+    # Nếu người dùng được tạo TRONG THÁNG TRƯỚC hoặc SỚM HƠN, mới xem xét hoạt động.
+    # Nếu user.created_at rơi vào sau end_of_last_month (tức là họ mới tạo tài khoản trong tháng này),
+    # thì không cần kiểm tra hoạt động tháng trước.
+    if user.created_at <= end_of_last_month:  #
+        activities_last_month = UserActivity.query.filter(
+            UserActivity.user_id == current_user_db_id,
+            UserActivity.timestamp >= first_day_of_last_month,
+            UserActivity.timestamp <= end_of_last_month
+        ).count()
+
+        if activities_last_month == 0:
+            # Thêm thông tin về tháng để thông báo rõ ràng hơn cho người dùng
+            month_name = first_day_of_last_month.strftime('%B')  # Tên tháng đầy đủ (ví dụ: June)
+            year = first_day_of_last_month.year
+            last_month_activity_message = f"Bạn chưa học gì trong tháng {month_name} năm {year} vừa rồi."
+    else:
+        # Nếu người dùng mới tạo tài khoản trong tháng hiện tại, không hiển thị thông báo
+        # last_month_activity_message vẫn sẽ là None.
+        pass
+
     if activities_last_month == 0:
         last_month_activity_message = "Bạn chưa học gì trong tháng vừa rồi."
 
@@ -2663,7 +2659,6 @@ def dashboard_page():
                            recent_lists=recent_lists,
                            recent_entries=recent_entries,
                            last_month_activity_message=last_month_activity_message)
-
 
 
 @app.route('/profile/update-info', methods=['POST'])

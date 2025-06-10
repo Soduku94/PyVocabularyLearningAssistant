@@ -42,7 +42,7 @@
         {% endif %}
     </div>
 
-    <h2 class="text-xl font-semibold text-gray-700 mb-4">Recent API Logs (Last 200)</h2>
+    <h2 class="text-xl font-semibold text-gray-700 mb-4">API Logs</h2> {# Đã bỏ "Last 200" #}
     {% if logs %}
     <div class="overflow-x-auto">
         <table class="min-w-full bg-white border">
@@ -80,6 +80,38 @@
             </tbody>
         </table>
     </div>
+
+    {# --- PHẦN PHÂN TRANG MỚI --- #}
+    <div class="mt-8 flex justify-center items-center space-x-2">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('admin_api_logs_page', page=pagination.prev_num) }}"
+               class="px-4 py-2 border rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">Previous</a>
+        {% else %}
+            <span class="px-4 py-2 border rounded-md text-gray-400 bg-gray-50 cursor-not-allowed">Previous</span>
+        {% endif %}
+
+        {% for p in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=3) %}
+            {% if p %}
+                {% if p == pagination.page %}
+                    <span class="px-4 py-2 border rounded-md bg-orange-500 text-white font-semibold">{{ p }}</span>
+                {% else %}
+                    <a href="{{ url_for('admin_api_logs_page', page=p) }}"
+                       class="px-4 py-2 border rounded-md text-gray-700 bg-white hover:bg-gray-100">{{ p }}</a>
+                {% endif %}
+            {% else %}
+                <span class="px-4 py-2 text-gray-500">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+            <a href="{{ url_for('admin_api_logs_page', page=pagination.next_num) }}"
+               class="px-4 py-2 border rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">Next</a>
+        {% else %}
+            <span class="px-4 py-2 border rounded-md text-gray-400 bg-gray-50 cursor-not-allowed">Next</span>
+        {% endif %}
+    </div>
+    {# --- KẾT THÚC PHẦN PHÂN TRANG --- #}
+
     {% else %}
     <p class="text-gray-600">No API logs found yet.</p>
     {% endif %}

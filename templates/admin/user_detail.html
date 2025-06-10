@@ -84,6 +84,7 @@ User Details: {{ viewed_user.email if viewed_user else "Unknown User" }} - Admin
             <form method="POST"
                   action="{{ url_for('admin_toggle_block_user_route', user_id_to_toggle=viewed_user.id) }}"
                   onsubmit="return confirm('Bạn có chắc chắn muốn {{ 'bỏ chặn' if viewed_user.is_blocked else 'chặn' }} người dùng \'{{ viewed_user.email }}\' không?');">
+             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit"
                         class="px-4 py-2 text-sm font-medium rounded-md border
                                    {% if viewed_user.is_blocked %}
