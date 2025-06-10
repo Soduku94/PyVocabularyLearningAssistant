@@ -183,3 +183,18 @@ class RegistrationForm(FlaskForm):
         validators=[DataRequired(message="Bạn phải đồng ý với các điều khoản và chính sách để đăng ký.")]
     )
     submit = SubmitField('Đăng ký')
+
+# THÊM MODEL MỚI NÀY
+class UserActivity(db.Model):
+    """
+    Theo dõi các hoạt động quan trọng của người dùng để đánh dấu "lần học".
+    """
+    __tablename__ = 'user_activity'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    activity_type = db.Column(db.String(100), nullable=False) # Ví dụ: 'session_start', 'words_added', 'list_reviewed'
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    details = db.Column(db.Text, nullable=True) # Thông tin chi tiết hơn về hoạt động
+
+    def __repr__(self):
+        return f'<UserActivity {self.id} - User {self.user_id} - Type: {self.activity_type} at {self.timestamp}>'

@@ -2,7 +2,7 @@
 
 # --- Standard Library Imports ---
 import os  # Để tương tác với hệ điều hành, ví dụ: đọc biến môi trường
-from datetime import datetime  # Để làm việc với ngày giờ, ví dụ: created_at, added_at
+from datetime import datetime, timedelta  # Để làm việc với ngày giờ, ví dụ: created_at, added_at
 from functools import wraps  # Để tạo decorator (ví dụ: @login_required, @admin_required)
 
 # --- Flask and Related Extensions ---
@@ -27,7 +27,7 @@ import requests  # Để gửi các yêu cầu HTTP (ví dụ: gọi API)
 
 # --- Application-Specific Imports ---
 from models import db, User, VocabularyList, VocabularyEntry, \
-    APILog  # Import SQLAlchemy instance (db) và các model từ file models.py
+    APILog, UserActivity  # Import SQLAlchemy instance (db) và các model từ file models.py
 
 # === APPLICATION SETUP ===
 
@@ -1024,7 +1024,7 @@ def get_word_details_dictionaryapi(word):
 @app.route('/enter-words',
            methods=['GET', 'POST'])
 # Route này xử lý cả GET (hiển thị trang) và POST (submit form generate)
-@login_required # <<< Bỏ comment dòng này để kích hoạt bảo vệ route
+@login_required  # <<< Bỏ comment dòng này để kích hoạt bảo vệ route
 def enter_words_page():
     """
     Hiển thị trang "Enter New Words" và xử lý việc người dùng nhập từ,
@@ -1033,6 +1033,7 @@ def enter_words_page():
     Sử dụng Flask-WTF để xử lý form và CSRF protection.
     """
 
+    log_user_activity(session.get("db_user_id"), 'accessed_enter_words_page')
     form = GenerateWordsForm()
 
     display_user_info = get_current_user_info()
@@ -1184,23 +1185,26 @@ def enter_words_page():
 # @login_required
 def save_list_route():
     current_user_db_id = session.get("db_user_id")
+    if current_user_db_id:
+        log_user_activity(current_user_db_id, 'words_saved',
+                          details={'list_id': request.get_json().get('existing_list_id') or 'new'})
     if not current_user_db_id:
-        print("DEBUG: User not logged in for save_list_route.") # DEBUG
+        print("DEBUG: User not logged in for save_list_route.")  # DEBUG
         return jsonify({"success": False, "message": "Vui lòng đăng nhập để lưu danh sách."}), 401
 
     data = request.get_json()
     if not data:
-        print("DEBUG: No JSON data received in save_list_route.") # DEBUG
+        print("DEBUG: No JSON data received in save_list_route.")  # DEBUG
         return jsonify({"success": False, "message": "Không nhận được dữ liệu."}), 400
 
-    print(f"DEBUG: Data received by save_list_route: {data}") # DEBUG: In toàn bộ payload
+    print(f"DEBUG: Data received by save_list_route: {data}")  # DEBUG: In toàn bộ payload
 
     vocabulary_items_data = data.get('words')
     list_name_from_input = data.get('list_name')
     existing_list_id = data.get('existing_list_id')
 
     if not vocabulary_items_data or not isinstance(vocabulary_items_data, list) or len(vocabulary_items_data) == 0:
-        print("DEBUG: No vocabulary items to save.") # DEBUG
+        print("DEBUG: No vocabulary items to save.")  # DEBUG
         return jsonify({"success": False, "message": "Không có từ vựng nào để lưu."}), 400
 
     target_list = None
@@ -1209,7 +1213,8 @@ def save_list_route():
     if existing_list_id:
         target_list = VocabularyList.query.filter_by(id=existing_list_id, user_id=current_user_db_id).first()
         if not target_list:
-            print(f"DEBUG: Existing list ID {existing_list_id} not found or not owned by user {current_user_db_id}.") # DEBUG
+            print(
+                f"DEBUG: Existing list ID {existing_list_id} not found or not owned by user {current_user_db_id}.")  # DEBUG
             return jsonify(
                 {"success": False, "message": "Không tìm thấy danh sách hiện có hoặc bạn không có quyền."}), 403
     elif list_name_from_input and list_name_from_input.strip():
@@ -1217,23 +1222,24 @@ def save_list_route():
         existing_list_with_same_name = VocabularyList.query.filter_by(user_id=current_user_db_id,
                                                                       name=cleaned_list_name).first()
         if existing_list_with_same_name:
-            print(f"DEBUG: List name '{cleaned_list_name}' already exists for user {current_user_db_id}.") # DEBUG
+            print(f"DEBUG: List name '{cleaned_list_name}' already exists for user {current_user_db_id}.")  # DEBUG
             return jsonify({"success": False,
                             "message": f"Bạn đã có một danh sách với tên '{cleaned_list_name}'. Vui lòng chọn tên khác."}), 400
 
         target_list = VocabularyList(name=cleaned_list_name, user_id=current_user_db_id)
         db.session.add(target_list)
         is_new_list = True
-        print(f"DEBUG: Creating new list: {cleaned_list_name} for user {current_user_db_id}.") # DEBUG
+        print(f"DEBUG: Creating new list: {cleaned_list_name} for user {current_user_db_id}.")  # DEBUG
     else:
-        print("DEBUG: Invalid list name or no existing list ID provided.") # DEBUG
+        print("DEBUG: Invalid list name or no existing list ID provided.")  # DEBUG
         return jsonify({"success": False,
                         "message": "Vui lòng cung cấp tên cho danh sách mới hoặc chọn một danh sách hiện có."}), 400
 
     try:
         for item_data in vocabulary_items_data:
-            print(f"DEBUG: Processing item_data for word: {item_data.get('original_word')}") # DEBUG
-            print(f"DEBUG: example_sentence_vi from item_data: {item_data.get('example_sentence_vi')}") # DEBUG: RẤT QUAN TRỌNG
+            print(f"DEBUG: Processing item_data for word: {item_data.get('original_word')}")  # DEBUG
+            print(
+                f"DEBUG: example_sentence_vi from item_data: {item_data.get('example_sentence_vi')}")  # DEBUG: RẤT QUAN TRỌNG
 
             new_entry = VocabularyEntry(
                 original_word=item_data.get('original_word'),
@@ -1242,15 +1248,16 @@ def save_list_route():
                 definition_vi=item_data.get('definition_vi'),
                 ipa=item_data.get('ipa'),
                 example_en=item_data.get('example_en'),
-                example_vi=item_data.get('example_sentence_vi'), # DÒNG NÀY ĐÃ ĐƯỢC SỬA. KIỂM TRA LẠI CHÍNH TẢ
+                example_vi=item_data.get('example_sentence_vi'),  # DÒNG NÀY ĐÃ ĐƯỢC SỬA. KIỂM TRA LẠI CHÍNH TẢ
                 user_id=current_user_db_id,
                 vocabulary_list=target_list
             )
             db.session.add(new_entry)
-            print(f"DEBUG: Added new_entry for '{new_entry.original_word}' with example_vi='{new_entry.example_vi}'.") # DEBUG
+            print(
+                f"DEBUG: Added new_entry for '{new_entry.original_word}' with example_vi='{new_entry.example_vi}'.")  # DEBUG
 
         db.session.commit()
-        print("DEBUG: Database commit successful.") # DEBUG
+        print("DEBUG: Database commit successful.")  # DEBUG
 
         action_message = f"Đã thêm từ vào danh sách '{target_list.name}'." if existing_list_id else f"Đã tạo và lưu danh sách '{target_list.name}'."
 
@@ -1263,9 +1270,9 @@ def save_list_route():
 
     except Exception as e:
         db.session.rollback()
-        print(f"ERROR: Exception during saving list/words for user {current_user_db_id}: {e}") # DEBUG Lỗi chi tiết
+        print(f"ERROR: Exception during saving list/words for user {current_user_db_id}: {e}")  # DEBUG Lỗi chi tiết
         import traceback
-        traceback.print_exc() # DEBUG: In đầy đủ traceback trên server console
+        traceback.print_exc()  # DEBUG: In đầy đủ traceback trên server console
 
         if "UNIQUE constraint failed" in str(e):
             return jsonify(
@@ -1282,7 +1289,7 @@ def my_lists_page():
     Trang này sẽ liệt kê tất cả các danh sách từ vựng (VocabularyList)
     mà người dùng hiện tại đã tạo.
     """
-
+    log_user_activity(session.get("db_user_id"), 'accessed_my_lists_page')
     # 1. Kiểm tra xem người dùng đã đăng nhập chưa bằng cách lấy 'db_user_id' từ session.
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
@@ -1322,6 +1329,7 @@ def list_detail_page(list_id):
     Bao gồm thông tin của danh sách và tất cả các VocabularyEntry (từ vựng) trong danh sách đó.
     Chỉ người dùng sở hữu danh sách mới có thể xem được.
     """
+    log_user_activity(session.get("db_user_id"), 'accessed_list_detail_page', details={'list_id': list_id})
 
     # 1. Kiểm tra xem người dùng đã đăng nhập chưa.
     current_user_db_id = session.get("db_user_id")
@@ -2098,6 +2106,24 @@ def google_complete_setup_page():
     )
 
 
+# THÊM HÀM GHI LOG HOẠT ĐỘNG
+def log_user_activity(user_id, activity_type, details=None):
+    """Ghi lại một hoạt động của người dùng."""
+    if user_id:
+        activity = UserActivity(
+            user_id=user_id,
+            activity_type=activity_type,
+            details=details
+        )
+        try:
+            db.session.add(activity)
+            db.session.commit()
+            print(f"Logged activity for user {user_id}: {activity_type}")
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error logging activity for user {user_id}: {activity_type} - {e}")
+
+
 # @app.route('/admin/entry/<int:entry_id>/delete', methods=['POST'])
 # @admin_required  # Đảm bảo chỉ người dùng có quyền Admin mới có thể truy cập route này
 # def admin_delete_vocab_entry_route(entry_id):
@@ -2537,14 +2563,15 @@ def edit_my_vocab_entry(entry_id):
 
 
 @app.route('/dashboard')  # Định nghĩa route URL là /dashboard
-# @login_required  # Nếu bạn có decorator này, hãy sử dụng nó ở đây
+@login_required  # Nếu bạn có decorator này, hãy sử dụng nó ở đây
 def dashboard_page():
     """
     Hiển thị trang Dashboard cá nhân cho người dùng đã đăng nhập.
     Bao gồm lời chào, thống kê cơ bản (số lượng list, số từ),
     danh sách các list từ vựng tạo gần đây, và các từ mới thêm gần đây.
     """
-
+    current_user_db_id = session.get("db_user_id")
+    log_user_activity(current_user_db_id, 'accessed_dashboard_page')
     # 1. Kiểm tra xem người dùng đã đăng nhập chưa.
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
@@ -2595,11 +2622,48 @@ def dashboard_page():
     #    - user_stats: Dictionary chứa các thông tin thống kê (số list, số từ).
     #    - recent_lists: Danh sách các VocabularyList tạo gần đây.
     #    - recent_entries: Danh sách các VocabularyEntry thêm gần đây.
+
+    # --- TÍNH TOÁN VÀ HIỂN THỊ THÔNG BÁO THÁNG TRƯỚC ---
+    last_month_activity_message = None
+    today = datetime.utcnow()
+    # Tính ngày đầu và cuối của tháng trước
+    # Tháng hiện tại
+    first_day_of_current_month = datetime(today.year, today.month, 1)
+
+    # Tháng trước:
+    # Nếu tháng hiện tại là tháng 1, tháng trước là tháng 12 năm trước
+    if today.month == 1:
+        first_day_of_last_month = datetime(today.year - 1, 12, 1)
+    else:
+        first_day_of_last_month = datetime(today.year, today.month - 1, 1)
+
+    # Để lấy ngày cuối cùng của tháng trước, lấy ngày đầu tiên của tháng hiện tại
+    # và trừ đi 1 giây hoặc 1 ngày.
+    # Hoặc đơn giản hơn: lấy ngày đầu tiên của tháng sau tháng trước, trừ 1 ngày.
+    # Lấy ngày đầu tiên của tháng hiện tại, trừ 1 giây để có cuối tháng trước
+    end_of_last_month = first_day_of_current_month - timedelta(seconds=1)
+
+    # Tìm bất kỳ hoạt động nào của người dùng trong tháng trước
+    # Chúng ta chỉ quan tâm đến các hoạt động học tập chính để tránh báo cáo sai
+    # activity_types_to_count = ['accessed_enter_words_page', 'words_saved', 'accessed_list_detail_page'] # Tùy thuộc vào cách bạn định nghĩa "học"
+    # Hoặc đơn giản là tất cả các hoạt động UserActivity
+
+    activities_last_month = UserActivity.query.filter(
+        UserActivity.user_id == current_user_db_id,
+        UserActivity.timestamp >= first_day_of_last_month,
+        UserActivity.timestamp <= end_of_last_month
+    ).count()
+
+    if activities_last_month == 0:
+        last_month_activity_message = "Bạn chưa học gì trong tháng vừa rồi."
+
     return render_template('dashboard.html',
                            user_info=display_user_info,
                            user_stats=stats,
                            recent_lists=recent_lists,
-                           recent_entries=recent_entries)
+                           recent_entries=recent_entries,
+                           last_month_activity_message=last_month_activity_message)
+
 
 
 @app.route('/profile/update-info', methods=['POST'])
