@@ -296,13 +296,7 @@
 
             {# Cụm các icon và nút User Menu/Login - Sẽ được đẩy sang phải bởi justify-between #}
             <div class="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
-                <button class="text-gray-600 hover:text-orange-500 p-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none"
-                         viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                </button>
+
                 <button class="text-gray-600 hover:text-orange-500 p-1">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none"
                          viewBox="0 0 24 24" stroke="currentColor">
@@ -315,14 +309,14 @@
                 {% if not user_info %}
                     <button id="openLoginModalBtn"
                             class="bg-orange-500 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-md hover:bg-orange-600 text-xs sm:text-sm font-medium">
-                        Đăng nhập
+                        Log in
                     </button>
                     <a href="{{ url_for('register') }}"
                        class="bg-gray-200 text-gray-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-md hover:bg-gray-300 text-xs sm:text-sm font-medium">
-                        Đăng ký
+                       Register
                     </a>
                 {% else %}
-                    {# ... (Phần avatar và dropdown user của bạn giữ nguyên) ... #}
+
                     <a href="{{ url_for('profile_page') }}" title="View Profile" class="flex-shrink-0">
                         {% if user_info.picture %}
                             <img class="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover border-2 border-transparent hover:border-orange-300 transition-colors"
@@ -506,7 +500,7 @@
                     </button>
                 </div>
             </form>
-            <p class="mt-6 text-center text-sm text-gray-600">Hoặc đăng nhập với:
+            <p class="mt-6 text-center text-sm text-gray-600">Or log in with:
                 <a href="{{ url_for('google.login') }}"
                    class="font-medium text-blue-600 hover:text-blue-500 inline-flex items-center">
                     <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">

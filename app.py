@@ -84,7 +84,7 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get("db_user_id"):
-            flash("Vui lòng đăng nhập để truy cập trang này.", "warning")
+            flash("Please login to access this page.", "warning")
             return redirect(url_for('home', open_login_modal=True))
         return f(*args, **kwargs)
 
@@ -104,7 +104,7 @@ def admin_required(f):
 
         # 2. Kiểm tra xem người dùng đã đăng nhập chưa
         if not current_user_db_id:
-            flash("Vui lòng đăng nhập để truy cập trang này.", "warning")
+            flash("Please login to access this page.", "warning")
             # Chuyển hướng về trang chủ và gợi ý mở modal đăng nhập
             # (JavaScript trên trang chủ có thể đọc param 'open_login_modal' để tự mở modal)
             return redirect(url_for('home', open_login_modal=True))
@@ -114,7 +114,7 @@ def admin_required(f):
 
         # 4. Kiểm tra xem người dùng có tồn tại và có phải là Admin không
         if not user or not user.is_admin:
-            flash("Bạn không có quyền truy cập vào trang quản trị.", "danger")
+            flash("You do not have permission to access the admin page.", "danger")
             # Chuyển hướng về trang chủ nếu không phải admin hoặc không tìm thấy user
             return redirect(url_for('home'))
 
@@ -199,11 +199,11 @@ def home():
                     user_info_from_google = resp.json()
                     session["user_info"] = user_info_from_google  # Lưu lại vào session để dùng sau
                 else:  # Không lấy được thông tin từ Google
-                    flash("Không thể lấy thông tin từ Google. Vui lòng thử lại.", "danger")
+                    flash("Could not get information from Google. Please try again.", "danger")
                     return redirect(url_for('logout'))  # Đăng xuất khỏi hệ thống và có thể cả Google Dance session
             except Exception as e:  # Lỗi mạng hoặc lỗi khác khi gọi API Google
                 print(f"Error fetching user info from Google: {e}")
-                flash("Lỗi kết nối tới Google. Vui lòng thử lại.", "danger")
+                flash("Error connecting to Google. Please try again.", "danger")
                 return redirect(url_for('logout'))
 
         # Nếu đã có user_info_from_google (từ session hoặc vừa lấy được)
@@ -223,7 +223,7 @@ def home():
                     if user:
                         # Tìm thấy user bằng email. Đây là trường hợp cần liên kết tài khoản Google này với user đã có.
                         if user.is_blocked:
-                            flash('Tài khoản của bạn (liên kết với email này) đã bị khóa.', 'danger')
+                            flash('Your account (associated with this email) has been locked.', 'danger')
                             # Cần đảm bảo logout khỏi Google Dance session nếu có
                             token_key = f"{google_bp.name}_oauth_token"  # google_bp cần được định nghĩa và đăng ký trước đó
                             if token_key in session: del session[token_key]
@@ -240,7 +240,7 @@ def home():
                                 db.session.commit()
                             except Exception as e:
                                 db.session.rollback()
-                                flash("Lỗi khi liên kết tài khoản Google với tài khoản hiện có.", "danger")
+                                flash("Error linking Google account to existing account.", "danger")
                                 return redirect(url_for('logout'))
                         # else: user này đã có google_id nhưng khác với google_id hiện tại (hiếm, có thể là lỗi logic hoặc user dùng nhiều tk Google cùng email)
                         #   Trong trường hợp này, có thể không làm gì hoặc báo lỗi. Hiện tại bạn đang bỏ qua.
@@ -258,7 +258,7 @@ def home():
                             # VÀ đã có password_hash (đã hoàn tất setup) -> Đăng nhập thành công
                             session['db_user_id'] = user.id
                             display_user_info = get_current_user_info()  # Lấy lại thông tin đầy đủ từ DB
-                            flash('Đăng nhập bằng Google thành công!', 'success')
+                            flash('Login with Google successful!', 'success')
                             return redirect(url_for('home'))  # Ở lại trang chủ
 
                     else:  # User hoàn toàn mới (không tìm thấy qua google_id, không tìm thấy qua email)
@@ -271,7 +271,7 @@ def home():
 
                 else:  # Đã tìm thấy user với google_id (đã đăng ký/liên kết Google trước đó)
                     if user.is_blocked:
-                        flash('Tài khoản của bạn đã bị khóa.', 'danger')
+                        flash('Your account has been locked.', 'danger')
                         token_key = f"{google_bp.name}_oauth_token"
                         if token_key in session: del session[token_key]
                         return redirect(url_for('logout'))
@@ -288,13 +288,13 @@ def home():
                         # User đã có google_id và password_hash -> đăng nhập thành công
                         session['db_user_id'] = user.id
                         display_user_info = get_current_user_info()  # Lấy lại thông tin đầy đủ
-                        flash('Chào mừng trở lại!', 'success')
+                        flash('Welcome back!', 'success')
                         return redirect(url_for('home'))  # Ở lại trang chủ
             else:
-                flash("Không thể xác thực với Google, thiếu thông tin định danh (Google ID hoặc Email).", "danger")
+                flash("Unable to authenticate with Google, missing identifier (Google ID or Email).", "danger")
                 return redirect(url_for('logout'))
         else:  # Không lấy được user_info_from_google
-            flash("Không thể lấy thông tin hồ sơ từ Google sau khi xác thực.", "danger")
+            flash("Unable to get profile information from Google after authentication.", "danger")
             return redirect(url_for('logout'))
 
     # Hiển thị trang chủ cho khách hoặc người dùng đã đăng nhập (không qua redirect)
@@ -469,14 +469,14 @@ def login():
             print("ERROR: Request POST to /login is not JSON")  # Debug
             # Trả về lỗi nếu client không gửi dữ liệu dưới dạng JSON như mong đợi
             return jsonify({"success": False,
-                            "message": "Yêu cầu không hợp lệ. Dữ liệu phải là JSON."}), 415  # 415 Unsupported Media Type
+                            "message": "Invalid request. Data must be JSON."}), 415  # 415 Unsupported Media Type
 
         # 2. Lấy dữ liệu JSON từ request
         data = request.get_json()
         if not data:  # Trường hợp get_json() trả về None (ví dụ: body rỗng dù content-type đúng)
             print("ERROR: No JSON data received in POST to /login")  # Debug
             return jsonify(
-                {"success": False, "message": "Không nhận được dữ liệu JSON từ yêu cầu."}), 400  # 400 Bad Request
+                {"success": False, "message": "Failed to receive JSON data from request."}), 400 # 400 Bad Request
 
         email = data.get('email')
         password = data.get('password')
@@ -485,7 +485,7 @@ def login():
         # 3. Validate dữ liệu đầu vào (email và password)
         if not email or not password:
             return jsonify(
-                {"success": False, "message": "Vui lòng nhập đầy đủ email và mật khẩu."}), 400  # 400 Bad Request
+                {"success": False, "message": "Please enter full email and password."}), 400  # 400 Bad Request
 
         # 4. Tìm người dùng trong database bằng email
         user = User.query.filter_by(email=email).first()
@@ -499,7 +499,7 @@ def login():
             if user.is_blocked:
                 print(f"Login FAILED for {email}: Account blocked")  # Debug
                 return jsonify({"success": False,
-                                "message": "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên."}), 403  # 403 Forbidden
+                                "message": "Your account has been locked. Please contact the administrator."}), 403  # 403 Forbidden
 
             # 5b. Đăng nhập thành công:
             session.clear()  # Xóa session cũ (nếu có) để đảm bảo sạch sẽ
@@ -518,14 +518,14 @@ def login():
             print(f"Login SUCCESS for {email}")  # Debug
 
             # Trả về JSON báo thành công cho client (AJAX)
-            return jsonify({"success": True, "message": "Đăng nhập thành công!"})  # HTTP 200 OK (mặc định)
+            return jsonify({"success": True, "message": "Login successful!"}) # HTTP 200 OK (mặc định)
         else:
             # Đăng nhập thất bại: Sai email, sai mật khẩu, hoặc user đăng nhập bằng Google và chưa đặt mật khẩu hệ thống.
             print(f"Login FAILED for {email}: Invalid credentials or no password_hash set for this email.")  # Debug
-            return jsonify({"success": False, "message": "Email hoặc mật khẩu không đúng."}), 401  # 401 Unauthorized
+            return jsonify({"success": False, "message": "Incorrect email or password."}), 401 # 401 Unauthorized
 
     # Trường hợp khác (ví dụ: request không phải GET cũng không phải POST hợp lệ, không nên xảy ra với route này)
-    return jsonify({"success": False, "message": "Phương thức không được hỗ trợ."}), 405  # 405 Method Not Allowed
+    return jsonify({"success": False, "message": "Method not supported."}), 405  # 405 Method Not Allowed
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -553,27 +553,27 @@ def register():
 
         # 2a. Kiểm tra các trường input cơ bản
         if not name or not email or not password or not confirm_password:
-            flash('Vui lòng điền đầy đủ thông tin.', 'danger')
+            flash('Please fill in all information.', 'danger')
             return redirect(url_for('register'))  # Tải lại trang đăng ký để hiển thị lỗi
 
         if len(password) < 6:
-            flash("Mật khẩu phải có ít nhất 6 ký tự.", "danger")
+            flash("Password must be at least 6 characters.", "danger")
             return redirect(url_for('register'))
 
         if password != confirm_password:
-            flash('Mật khẩu và xác nhận mật khẩu không khớp.', 'danger')
+            flash('Password and confirm password do not match.', 'danger')
             return redirect(url_for('register'))
 
         # 2b. KIỂM TRA CHECKBOX "ĐỒNG Ý ĐIỀU KHOẢN"
         # Nếu checkbox không được chọn, giá trị của 'agree_terms' khi lấy từ request.form.get() sẽ là None.
         if not agree_terms:
-            flash('Bạn phải đồng ý với Điều khoản Dịch vụ và Chính sách Bảo mật để đăng ký.', 'danger')
+            flash('You must agree to the Terms of Service and Privacy Policy to register.', 'danger')
             return redirect(url_for('register'))
 
         # 2c. Kiểm tra xem email đã tồn tại trong database chưa
         existing_user = User.query.filter_by(email=email).first()
         if existing_user:
-            flash('Địa chỉ email này đã được sử dụng. Vui lòng chọn email khác.', 'warning')
+            flash('This email address is already in use. Please choose another email.', 'warning')
             return redirect(url_for('register'))
 
         # 2d. Nếu tất cả thông tin hợp lệ, tạo người dùng mới
@@ -587,13 +587,13 @@ def register():
             # (Tùy chọn) Bạn có thể thêm một trường is_terms_agreed (Boolean) vào model User
             # và đặt giá trị True ở đây nếu bạn muốn lưu lại việc người dùng đã đồng ý.
 
-            flash('Đăng ký thành công! Vui lòng đăng nhập bằng tài khoản vừa tạo.', 'success')
+            flash('Registration successful! Please log in with the account you just created.', 'success')
             # Chuyển hướng đến trang đăng nhập (hoặc trang chủ và tự mở modal login)
             # Hiện tại, chuyển đến /login, và route /login sẽ redirect về home?open_login_modal=true
             return redirect(url_for('login'))
         except Exception as e:
             db.session.rollback()  # Hoàn tác lại các thay đổi trong database nếu có lỗi
-            flash(f'Đã xảy ra lỗi trong quá trình đăng ký: {str(e)}', 'danger')
+            flash(f'An error occurred during registration.: {str(e)}', 'danger')
             print(f"Error during user registration for email {email}: {e}")  # Log lỗi chi tiết ở server
             return redirect(url_for('register'))  # Quay lại trang đăng ký
 
@@ -1058,12 +1058,12 @@ def enter_words_page():
             list_obj = VocabularyList.query.filter_by(id=target_list_id_from_url, user_id=current_user_db_id).first()
             if list_obj:
                 target_list_info = {"id": list_obj.id, "name": list_obj.name}
-                flash(f"Bạn đang thêm từ vào danh sách: '{list_obj.name}'. Các từ sẽ được lưu vào danh sách này.",
+                flash(f"You are adding words to the list: '{list_obj.name}'. The words will be saved to this list.",
                       "info")
                 if form.target_list_id_on_post:
                     form.target_list_id_on_post.data = list_obj.id
             else:
-                flash("Không tìm thấy danh sách được chỉ định hoặc bạn không có quyền.", "warning")
+                flash("The specified list was not found or you do not have permission.", "warning")
                 return redirect(url_for('my_lists_page'))
 
     input_str = ""
@@ -1161,8 +1161,7 @@ def enter_words_page():
                 print(f"  Kết quả cho '{original_word}': {processed_results_dict[original_word]}")
 
         elif input_str:
-            flash("Vui lòng nhập từ hợp lệ, cách nhau bằng dấu phẩy.", "info")
-
+            flash("Please enter valid words, separated by commas.", "info")
     if request.method == 'GET':
         if not target_list_info and not processed_results_dict:
             form.words_input.data = session.pop('last_processed_input', '')
@@ -1295,7 +1294,7 @@ def my_lists_page():
     if not current_user_db_id:
         # Nếu chưa đăng nhập, hiển thị thông báo flash và chuyển hướng về trang chủ.
         # Trang chủ có thể có logic JavaScript để tự động mở modal đăng nhập.
-        flash("Vui lòng đăng nhập để xem danh sách của bạn.", "warning")
+        flash("Please login to view your list.", "warning")
         return redirect(url_for('home'))  # Hoặc url_for('home', open_login_modal='true')
 
     # 2. Lấy thông tin của người dùng hiện tại đang đăng nhập.
@@ -1335,7 +1334,7 @@ def list_detail_page(list_id):
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
         # Nếu chưa đăng nhập, hiển thị thông báo và chuyển hướng về trang chủ (hoặc trang đăng nhập).
-        flash("Vui lòng đăng nhập để xem chi tiết danh sách.", "warning")
+        flash("Please login to view list details.", "warning")
         return redirect(url_for('home'))  # Hoặc url_for('home', open_login_modal='true')
 
     # 2. Lấy thông tin của người dùng hiện tại đang đăng nhập.
@@ -1353,7 +1352,7 @@ def list_detail_page(list_id):
     if not vocab_list:
         # Nếu không tìm thấy list (do ID sai hoặc không thuộc quyền sở hữu),
         # hiển thị thông báo lỗi và chuyển hướng về trang "My Lists" của người dùng.
-        flash("Không tìm thấy danh sách từ vựng hoặc bạn không có quyền truy cập.", "danger")
+        flash("The word list was not found or you do not have access.", "danger")
         return redirect(url_for('my_lists_page'))
 
     # 5. Nếu VocabularyList hợp lệ, lấy tất cả các VocabularyEntry (từ vựng)
@@ -1392,7 +1391,7 @@ def delete_list_route(list_id):
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
         # Nếu không có user_id trong session, nghĩa là người dùng chưa đăng nhập.
-        flash("Vui lòng đăng nhập để thực hiện hành động này.", "warning")
+        flash("Please log in to perform this action.", "warning")
         # Chuyển hướng về trang chủ hoặc trang đăng nhập.
         return redirect(url_for('home'))
 
@@ -1403,7 +1402,7 @@ def delete_list_route(list_id):
     # 3. Kiểm tra xem danh sách có tồn tại không.
     if not list_to_delete:
         # Nếu không tìm thấy danh sách với ID đó, hiển thị thông báo lỗi.
-        flash("Không tìm thấy danh sách để xóa.", "danger")
+        flash("No list found to delete.", "danger")
         # Chuyển hướng về trang danh sách của người dùng hoặc trang dashboard của admin.
         # (Cần xác định logic redirect phù hợp dựa trên ai đang gọi route này)
         # Nếu đây là route chung, có thể cần kiểm tra vai trò user để redirect đúng.
@@ -1418,7 +1417,7 @@ def delete_list_route(list_id):
     #      Tuy nhiên, logic hiện tại của bạn là kiểm tra quyền sở hữu, phù hợp cho người dùng tự xóa.
     if list_to_delete.user_id != current_user_db_id:
         # Nếu người dùng không sở hữu danh sách này, không cho phép xóa.
-        flash("Bạn không có quyền xóa danh sách này.", "danger")
+        flash("You do not have permission to delete this list.", "danger")
         return redirect(url_for('my_lists_page'))  # Hoặc một trang lỗi truy cập
 
     try:
@@ -1434,7 +1433,7 @@ def delete_list_route(list_id):
         db.session.commit()  # Lưu các thay đổi vào database.
 
         # Hiển thị thông báo thành công cho người dùng.
-        flash(f"Đã xóa thành công danh sách '{deleted_list_name}'.", "success")
+        flash(f"Successfully deleted list '{deleted_list_name}'.", "success")
         # Ghi log ở server (tùy chọn)
         print(f"User {current_user_db_id} đã xóa list ID {list_id} ('{deleted_list_name}')")
 
@@ -1443,7 +1442,7 @@ def delete_list_route(list_id):
         #    hoàn tác lại các thay đổi (rollback) để đảm bảo tính toàn vẹn dữ liệu.
         db.session.rollback()
         # Hiển thị thông báo lỗi cho người dùng.
-        flash(f"Có lỗi xảy ra khi xóa danh sách: {str(e)}", "danger")
+        flash(f"An error occurred while deleting the list: {str(e)}", "danger")
         # Ghi log lỗi chi tiết ở server.
         print(f"Lỗi khi user {current_user_db_id} xóa list ID {list_id}: {e}")
 
@@ -1476,21 +1475,21 @@ def rename_list_route(list_id):
 
     if not list_to_rename:
         # Nếu không tìm thấy danh sách với ID đó, trả về lỗi 404 Not Found.
-        return jsonify({"success": False, "message": "Không tìm thấy danh sách để đổi tên."}), 404
+        return jsonify({"success": False, "message": "No list found to rename."}), 404
 
     # 3. Lấy dữ liệu JSON từ request (chứa tên mới của danh sách).
     data = request.get_json()
     if not data or 'new_name' not in data:
         # Nếu không có dữ liệu hoặc thiếu new_name, trả về lỗi 400 Bad Request.
-        return jsonify({"success": False, "message": "Tên danh sách mới không được cung cấp."}), 400
+        return jsonify({"success": False, "message": "New list name was not provided."}), 400
 
     new_name = data.get('new_name', '').strip()  # Lấy tên mới và loại bỏ khoảng trắng thừa.
 
     # 4. Validate tên mới.
     if not new_name:
-        return jsonify({"success": False, "message": "Tên danh sách mới không được để trống."}), 400
+        return jsonify({"success": False, "message": "New list name cannot be empty."}), 400
     if len(new_name) > 150:  # Ví dụ: giới hạn độ dài tên list (đồng bộ với model)
-        return jsonify({"success": False, "message": "Tên danh sách quá dài (tối đa 150 ký tự)."}), 400
+        return jsonify({"success": False, "message": "List name too long (max 150 characters)."}), 400
 
     # (Tùy chọn) Kiểm tra xem tên mới có trùng với một list khác của cùng người dùng sở hữu list này không.
     # Điều này giúp tránh việc một user có nhiều list trùng tên.
@@ -1539,7 +1538,7 @@ def admin_delete_entry_route(entry_id):  # Đổi tên hàm cho rõ ràng hơn
     # Hoặc dùng get_or_404(entry_id) nếu bạn muốn Flask tự trả về lỗi 404 HTML (nhưng redirect thường tốt hơn cho UX ở đây).
 
     if not entry_to_delete:
-        flash("Không tìm thấy mục từ vựng để xóa.", "danger")
+        flash("No vocabulary entry found to delete.", "danger")
         # Redirect về một trang admin phù hợp, ví dụ dashboard hoặc trang quản lý user/list trước đó.
         # request.referrer có thể không đáng tin cậy hoặc không tồn tại.
         return redirect(request.referrer or url_for('admin_bp.dashboard'))  # Giả sử có admin_bp.dashboard
@@ -1558,14 +1557,14 @@ def admin_delete_entry_route(entry_id):  # Đổi tên hàm cho rõ ràng hơn
         db.session.delete(entry_to_delete)
         db.session.commit()  # Lưu thay đổi vào database.
 
-        flash(f"Đã xóa thành công mục từ '{entry_original_word}' khỏi danh sách.",
-              "success_admin")  # Dùng category riêng cho admin flash
+        flash(f"Successfully removed entry '{entry_original_word}' from list.",
+              "success_admin")  # Use separate category for admin flash
         print(
             f"Admin ({admin_user_info.get('email')}) đã xóa entry ID {entry_id} ('{entry_original_word}') từ list ID {parent_list_id} của user ID {parent_list_owner_id}")  # Debug
 
     except Exception as e:
         db.session.rollback()  # Hoàn tác nếu có lỗi.
-        flash(f"Có lỗi xảy ra khi xóa mục từ: {str(e)}", "danger_admin")
+        flash(f"An error occurred while deleting item: {str(e)}", "danger_admin")
         print(f"Lỗi khi Admin ({admin_user_info.get('email')}) xóa entry ID {entry_id}: {e}")  # Log lỗi.
 
     # 5. Redirect Admin trở lại trang xem chi tiết danh sách từ vựng của người dùng đó.
@@ -1659,7 +1658,7 @@ def profile_page():
     # 1. Kiểm tra xem người dùng đã đăng nhập chưa.
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
-        flash("Vui lòng đăng nhập để xem hồ sơ của bạn.", "warning")
+        flash("Please login to view your profile.", "warning")
         # Chuyển hướng về trang chủ, có thể kèm tham số để JavaScript tự mở modal đăng nhập.
         return redirect(url_for('home', open_login_modal='true'))
 
@@ -1668,7 +1667,7 @@ def profile_page():
     if not user:
         # Nếu không tìm thấy user (ví dụ: session hỏng hoặc user đã bị xóa),
         # hiển thị lỗi, xóa session và chuyển hướng về trang chủ.
-        flash("Không tìm thấy thông tin người dùng.", "danger")
+        flash("No user information found.", "danger")
         session.clear()
         return redirect(url_for('home'))
 
@@ -1830,7 +1829,7 @@ def admin_delete_user_route(user_id_to_delete):
 
     # 2. Kiểm tra an toàn: Admin không thể tự xóa tài khoản của chính mình.
     if user_id_to_delete == admin_user_id:
-        flash("Bạn không thể tự xóa tài khoản của chính mình.", "danger")
+        flash("You cannot delete your own account.", "danger")
         # Chuyển hướng về trang Admin Dashboard.
         return redirect(url_for('admin_dashboard'))  # Hoặc 'admin_bp.dashboard' nếu dùng blueprint
 
@@ -1841,14 +1840,14 @@ def admin_delete_user_route(user_id_to_delete):
 
     # 4. Kiểm tra xem người dùng có tồn tại không.
     if not user_to_delete:
-        flash("Không tìm thấy người dùng để xóa.", "danger")
+        flash("No user found to delete.", "danger")
         return redirect(url_for('admin_dashboard'))  # Hoặc 'admin_bp.dashboard'
 
     # 5. Kiểm tra an toàn bổ sung: Ngăn việc xóa một tài khoản Admin khác từ giao diện này.
     #    Đây là một biện pháp để tránh vô tình xóa hết Admin hoặc các lỗi nghiêm trọng.
     #    Việc quản lý tài khoản Admin cấp cao có thể cần một quy trình riêng biệt hơn.
     if user_to_delete.is_admin:
-        flash("Không thể xóa tài khoản Admin từ giao diện này.", "danger")
+        flash("Cannot delete Admin account from this interface.", "danger")
         # Chuyển hướng về trang chi tiết của người dùng Admin đó (nơi không có nút xóa cho Admin).
         return redirect(url_for('admin_view_user_detail', user_id_to_view=user_id_to_delete))
         # Hoặc 'admin_bp.view_user_detail'
@@ -1868,7 +1867,7 @@ def admin_delete_user_route(user_id_to_delete):
         db.session.commit()  # Lưu các thay đổi (bao gồm cả cascade delete) vào database.
 
         # Hiển thị thông báo thành công cho Admin.
-        flash(f"Đã xóa thành công người dùng '{user_email_deleted}' và tất cả dữ liệu liên quan.", "success")
+        flash(f"Successfully deleted user '{user_email_deleted}' and all related data.", "success")
         # Ghi log ở server (tùy chọn).
         print(f"Admin (ID: {admin_user_id}) đã xóa user ID {user_id_to_delete} ('{user_email_deleted}')")
 
@@ -1877,7 +1876,7 @@ def admin_delete_user_route(user_id_to_delete):
         #    hoàn tác lại các thay đổi (rollback) để đảm bảo tính toàn vẹn dữ liệu.
         db.session.rollback()
         # Hiển thị thông báo lỗi cho Admin.
-        flash(f"Có lỗi xảy ra khi xóa người dùng: {str(e)}", "danger")
+        flash(f"An error occurred while deleting the user: {str(e)}", "danger")
         # Ghi log lỗi chi tiết ở server.
         print(f"Lỗi khi Admin (ID: {admin_user_id}) xóa user ID {user_id_to_delete}: {e}")
         # Chuyển hướng về trang chi tiết của người dùng đó để Admin biết lỗi xảy ra với ai.
@@ -1902,7 +1901,7 @@ def admin_toggle_block_user_route(user_id_to_toggle):
 
     # 2. Kiểm tra an toàn: Admin không thể tự chặn/bỏ chặn chính mình.
     if user_id_to_toggle == admin_user_id:
-        flash("Bạn không thể tự chặn/bỏ chặn chính mình.", "danger")
+        flash("You cannot block/unblock yourself.", "danger")
         # Quay lại trang trước đó (nếu có) hoặc Admin Dashboard.
         # request.referrer chứa URL của trang mà từ đó request này được gửi đến.
         return redirect(request.referrer or url_for('admin_dashboard'))  # Hoặc 'admin_bp.dashboard'
@@ -1914,7 +1913,7 @@ def admin_toggle_block_user_route(user_id_to_toggle):
     # 4. Kiểm tra an toàn bổ sung: Không cho phép chặn/bỏ chặn tài khoản Admin khác.
     #    Đây là biện pháp để bảo vệ các tài khoản quản trị.
     if user_to_toggle.is_admin:
-        flash("Không thể chặn/bỏ chặn tài khoản Admin khác từ giao diện này.", "danger")
+        flash("Cannot block/unblock other Admin accounts from this interface.", "danger")
         return redirect(request.referrer or url_for('admin_dashboard'))  # Hoặc 'admin_bp.dashboard'
 
     try:
@@ -1928,7 +1927,7 @@ def admin_toggle_block_user_route(user_id_to_toggle):
         action = "bỏ chặn" if not user_to_toggle.is_blocked else "chặn"
 
         # Hiển thị thông báo thành công.
-        flash(f"Đã {action} thành công người dùng '{user_to_toggle.email}'.", "success")
+        flash(f"Successfully {action} user '{user_to_toggle.email}'.", "success")
         # Ghi log ở server (tùy chọn).
         print(f"Admin (ID: {admin_user_id}) đã {action} user ID {user_id_to_toggle} ('{user_to_toggle.email}')")
 
@@ -1936,7 +1935,7 @@ def admin_toggle_block_user_route(user_id_to_toggle):
         # 6. Nếu có lỗi xảy ra trong quá trình tương tác với database, hoàn tác lại.
         db.session.rollback()
         # Hiển thị thông báo lỗi.
-        flash(f"Có lỗi xảy ra khi thay đổi trạng thái người dùng: {str(e)}", "danger")
+        flash(f"An error occurred while changing user status: {str(e)}", "danger")
         # Ghi log lỗi chi tiết ở server.
         print(f"Lỗi khi Admin (ID: {admin_user_id}) toggle block user ID {user_id_to_toggle}: {e}")
 
@@ -1970,7 +1969,7 @@ def admin_view_list_entries_page(owner_user_id, list_id):
     if not list_owner:
         # Nếu không tìm thấy người dùng với ID đó, hiển thị thông báo lỗi và chuyển hướng Admin
         # về trang Admin Dashboard (hoặc một trang quản lý người dùng phù hợp).
-        flash(f"Không tìm thấy người dùng với ID {owner_user_id}.", "danger")
+        flash(f"No user with ID {owner_user_id} found.", "danger")
         return redirect(url_for('admin_dashboard'))  # Hoặc 'admin_bp.dashboard' nếu dùng blueprint
 
     # 3. Lấy đối tượng VocabularyList từ database.
@@ -1982,8 +1981,8 @@ def admin_view_list_entries_page(owner_user_id, list_id):
         # Nếu không tìm thấy danh sách (do ID sai hoặc không thuộc về người dùng đó),
         # hiển thị thông báo lỗi.
         flash(
-            f"Không tìm thấy danh sách từ vựng với ID {list_id} cho người dùng '{list_owner.email}', "
-            f"hoặc danh sách không thuộc về người dùng này.",
+            f"No vocabulary list with ID {list_id} found for user '{list_owner.email}', "
+            f"or the list does not belong to this user.",
             "danger"
         )
         # Chuyển hướng Admin về trang chi tiết của người dùng đó (nơi họ có thể thấy các list khác).
@@ -2024,7 +2023,7 @@ def google_complete_setup_page():
     """
     # 1. Kiểm tra xem có dữ liệu tạm thời từ Google Auth không
     if 'google_auth_pending_setup' not in session:
-        flash("Không có yêu cầu cài đặt tài khoản Google nào đang chờ xử lý. Vui lòng thử đăng nhập lại.", "warning")
+        flash("There are no pending Google account setup requests. Please try signing in again.", "warning")
         return redirect(url_for('home'))
 
     # 2. Lấy thông tin người dùng từ session tạm thời
@@ -2036,7 +2035,7 @@ def google_complete_setup_page():
 
     # Nếu vì lý do nào đó không có email hoặc google_id, chuyển hướng về home
     if not email or not google_id:
-        flash("Thông tin xác thực Google không đầy đủ. Vui lòng thử lại.", "danger")
+        flash("Google credentials are incomplete. Please try again.", "danger")
         return redirect(url_for('home'))
 
     # 3. Xử lý POST request (khi người dùng submit form đặt mật khẩu)
@@ -2046,11 +2045,11 @@ def google_complete_setup_page():
 
         # Validation mật khẩu
         if not new_password or not confirm_password:
-            flash("Vui lòng nhập mật khẩu mới và xác nhận mật khẩu.", "danger")
+            flash("Please enter new password and confirm password.", "danger")
         elif new_password != confirm_password:
-            flash("Mật khẩu mới và xác nhận mật khẩu không khớp.", "danger")
+            flash("New password and confirm password do not match.", "danger")
         elif len(new_password) < 6:
-            flash("Mật khẩu phải có ít nhất 6 ký tự.", "danger")
+            flash("Password must be at least 6 characters.", "danger")
         else:
             try:
                 # Tìm người dùng trong DB (có thể đã có tài khoản bằng email nhưng chưa có google_id/password)
@@ -2084,12 +2083,12 @@ def google_complete_setup_page():
                 # Thiết lập session cho người dùng sau khi hoàn tất
                 session['db_user_id'] = user.id
                 del session['google_auth_pending_setup']  # Xóa dữ liệu tạm thời
-                flash('Cài đặt tài khoản thành công! Bạn đã được đăng nhập.', 'success')
+                flash('Account setup successful! You are now logged in.', 'success')
                 return redirect(url_for('dashboard_page'))  # Chuyển hướng đến dashboard hoặc trang chủ
 
             except Exception as e:
                 db.session.rollback()
-                flash(f"Đã xảy ra lỗi trong quá trình cài đặt tài khoản: {str(e)}", "danger")
+                flash(f"An error occurred while setting up the account: {str(e)}", "danger")
                 print(f"Error during Google setup for {email}: {e}")
 
     # 4. Xử lý GET request (hiển thị form)
@@ -2124,79 +2123,7 @@ def log_user_activity(user_id, activity_type, details=None):
             print(f"Error logging activity for user {user_id}: {activity_type} - {e}")
 
 
-# @app.route('/admin/entry/<int:entry_id>/delete', methods=['POST'])
-# @admin_required  # Đảm bảo chỉ người dùng có quyền Admin mới có thể truy cập route này
-# def admin_delete_vocab_entry_route(entry_id):
-#     """
-#     Xử lý yêu cầu của Admin để xóa một VocabularyEntry (mục từ vựng) cụ thể
-#     khỏi một danh sách của người dùng.
-#     """
-#
-#     # 1. Lấy thông tin của Admin đang đăng nhập (để sử dụng trong logging hoặc các kiểm tra khác nếu cần).
-#     admin_user_info = get_current_user_info()
-#     # Hàm get_current_user_info() cần trả về một dictionary chứa thông tin người dùng hiện tại,
-#     # bao gồm cả email nếu bạn muốn dùng admin_user_info.get('email') cho logging.
-#
-#     # 2. Tìm VocabularyEntry cần xóa trong database dựa trên entry_id được cung cấp từ URL.
-#     entry_to_delete = VocabularyEntry.query.get(entry_id)
-#     # User.query.get(id) là cách nhanh để lấy đối tượng bằng khóa chính.
-#     # Nếu không tìm thấy, nó sẽ trả về None.
-#
-#     # 3. Kiểm tra xem mục từ vựng có tồn tại không.
-#     if not entry_to_delete:
-#         flash("Không tìm thấy mục từ vựng để xóa.", "danger")
-#         # Cố gắng chuyển hướng Admin về trang mà họ vừa truy cập (request.referrer).
-#         # Nếu không có thông tin trang trước đó, chuyển hướng về Admin Dashboard.
-#         # (Lưu ý: request.referrer có thể không luôn luôn đáng tin cậy hoặc không tồn tại).
-#         return redirect(request.referrer or url_for('admin_dashboard'))  # Hoặc 'admin_bp.dashboard' nếu dùng blueprint
-#
-#     # 4. Lấy thông tin cần thiết cho việc redirect TRƯỚC KHI xóa entry.
-#     #    - parent_list_id: ID của danh sách từ vựng chứa entry này.
-#     #    - parent_list_owner_id: ID của người dùng sở hữu danh sách đó.
-#     #      (Thông tin này cần thiết để tạo URL cho trang admin_view_list_entries_page)
-#     parent_list_id = entry_to_delete.list_id
-#     # Giả định rằng mối quan hệ 'vocabulary_list' đã được thiết lập trong model VocabularyEntry
-#     # để có thể truy cập user_id của list cha: entry_to_delete.vocabulary_list.user_id
-#     parent_list_owner_id = entry_to_delete.vocabulary_list.user_id
-#
-#     # Lấy tên từ gốc để sử dụng trong thông báo flash.
-#     entry_original_word = entry_to_delete.original_word
-#
-#     # 5. Admin (đã qua @admin_required) có quyền xóa entry của bất kỳ user nào,
-#     #    nên không cần kiểm tra quyền sở hữu của entry với admin_user_id ở đây.
-#     #    Việc kiểm duyệt nội dung là một phần vai trò của Admin.
-#
-#     try:
-#         # 6. Thực hiện xóa VocabularyEntry khỏi database.
-#         db.session.delete(entry_to_delete)
-#         db.session.commit()  # Lưu các thay đổi vào database.
-#
-#         # Hiển thị thông báo thành công cho Admin.
-#         flash(f"Đã xóa thành công mục từ '{entry_original_word}' khỏi danh sách.", "success")
-#         # Ghi log ở server (tùy chọn).
-#         admin_email_for_log = admin_user_info.get('email') if admin_user_info else "Unknown Admin"
-#         print(
-#             f"Admin ({admin_email_for_log}) đã xóa entry ID {entry_id} ('{entry_original_word}') "
-#             f"khỏi list ID {parent_list_id} của user ID {parent_list_owner_id}"
-#         )
-#
-#     except Exception as e:
-#         # 7. Nếu có bất kỳ lỗi nào xảy ra trong quá trình tương tác với database,
-#         #    hoàn tác lại các thay đổi (rollback).
-#         db.session.rollback()
-#         # Hiển thị thông báo lỗi cho Admin.
-#         flash(f"Có lỗi xảy ra khi xóa mục từ: {str(e)}", "danger")
-#         # Ghi log lỗi chi tiết ở server.
-#         admin_email_for_log = admin_user_info.get('email') if admin_user_info else "Unknown Admin"
-#         print(f"Lỗi khi Admin ({admin_email_for_log}) xóa entry ID {entry_id}: {e}")
-#
-#         # 8. Sau khi xóa (hoặc nếu có lỗi và đã flash thông báo),
-#     #    chuyển hướng Admin trở lại trang xem chi tiết danh sách từ vựng của người dùng đó.
-#     #    Điều này giúp Admin thấy ngay kết quả của hành động xóa.
-#     return redirect(url_for('admin_view_list_entries_page',
-#                             owner_user_id=parent_list_owner_id,
-#                             list_id=parent_list_id))
-#
+
 
 
 @app.route('/admin/entry/<int:entry_id>/edit', methods=['POST'])
@@ -2251,7 +2178,7 @@ def admin_edit_vocab_entry_route(entry_id):
 
         # 7. (Tùy chọn) Gửi một thông báo flash. Thông báo này sẽ hiển thị cho Admin
         #    khi trang được tải lại (ví dụ, sau khi JavaScript nhận response thành công và reload trang).
-        flash(f"Đã cập nhật thành công mục từ '{entry_to_edit.original_word}'.", "success")
+        flash(f"Entry '{entry_to_edit.original_word}' successfully updated.", "success")
 
         # Ghi log ở server (tùy chọn).
         admin_email_for_log = admin_user_info.get('email') if admin_user_info else "Unknown Admin"
@@ -2330,7 +2257,7 @@ def delete_my_vocabulary_list(list_id_to_delete):
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
         # Nếu chưa đăng nhập, hiển thị thông báo và chuyển hướng.
-        flash("Vui lòng đăng nhập để thực hiện hành động này.", "warning")
+        flash("Please log in to perform this action.", "warning")
         return redirect(url_for('home'))  # Hoặc url_for('login') nếu có trang login riêng
 
     # 2. Tìm VocabularyList cần xóa trong database dựa trên list_id_to_delete từ URL.
@@ -2340,14 +2267,14 @@ def delete_my_vocabulary_list(list_id_to_delete):
     # 3. Kiểm tra xem danh sách có thực sự tồn tại không.
     if not list_to_delete:
         # Nếu không tìm thấy danh sách, báo lỗi và chuyển hướng về trang "My Lists".
-        flash("Không tìm thấy danh sách để xóa.", "danger")
+        flash("No list found to delete.", "danger")
         return redirect(url_for('my_lists_page'))
 
     # 4. QUAN TRỌNG: Kiểm tra quyền sở hữu.
     #    Đảm bảo rằng danh sách này thực sự thuộc về người dùng hiện tại đang đăng nhập.
     if list_to_delete.user_id != current_user_db_id:
         # Nếu không phải, người dùng không có quyền xóa danh sách này.
-        flash("Bạn không có quyền xóa danh sách này.", "danger")
+        flash("You do not have permission to delete this list.", "danger")
         return redirect(url_for('my_lists_page'))  # Chuyển hướng về trang "My Lists" của họ.
 
     try:
@@ -2363,7 +2290,7 @@ def delete_my_vocabulary_list(list_id_to_delete):
         db.session.commit()  # Lưu các thay đổi (bao gồm cả cascade delete) vào database.
 
         # Hiển thị thông báo xóa thành công.
-        flash(f"Đã xóa thành công danh sách '{list_name_deleted}'.", "success")
+        flash(f"Successfully deleted list '{list_name_deleted}'.", "success")
         # Ghi log ở server (tùy chọn).
         print(
             f"User {current_user_db_id} đã xóa list ID {list_id_to_delete} ('{list_name_deleted}') của chính họ."
@@ -2374,7 +2301,7 @@ def delete_my_vocabulary_list(list_id_to_delete):
         #    hoàn tác lại các thay đổi (rollback) để đảm bảo tính toàn vẹn dữ liệu.
         db.session.rollback()
         # Hiển thị thông báo lỗi cho người dùng.
-        flash(f"Có lỗi xảy ra khi xóa danh sách: {str(e)}", "danger")
+        flash(f"An error occurred while deleting the list: {str(e)}", "danger")
         # Ghi log lỗi chi tiết ở server.
         print(f"Lỗi khi user {current_user_db_id} xóa list ID {list_id_to_delete}: {e}")
 
@@ -2396,7 +2323,7 @@ def delete_my_vocab_entry(entry_id):
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
         # Nếu chưa đăng nhập, hiển thị thông báo và chuyển hướng.
-        flash("Vui lòng đăng nhập để thực hiện hành động này.", "warning")
+        flash("Please log in to perform this action.", "warning")
         return redirect(url_for('home'))  # Hoặc url_for('login_page') nếu có trang login riêng
 
     # 2. Tìm VocabularyEntry cần xóa trong database dựa trên entry_id từ URL.
@@ -2405,7 +2332,7 @@ def delete_my_vocab_entry(entry_id):
 
     # 3. Kiểm tra xem mục từ vựng có thực sự tồn tại không.
     if not entry_to_delete:
-        flash("Không tìm thấy từ để xóa.", "danger")
+        flash("No word found to delete.", "danger")
         # Cố gắng chuyển hướng người dùng về trang trước đó họ đã truy cập (request.referrer).
         # Nếu không có thông tin trang trước đó, chuyển hướng về trang "My Lists" chung.
         return redirect(request.referrer or url_for('my_lists_page'))
@@ -2420,7 +2347,7 @@ def delete_my_vocab_entry(entry_id):
     #    bạn có thể dùng: if entry_to_delete.user_id != current_user_db_id: (như bạn đã comment lại)
     if entry_to_delete.vocabulary_list.user_id != current_user_db_id:
         # Nếu không phải, người dùng không có quyền xóa từ này.
-        flash("Bạn không có quyền xóa từ này.", "danger")
+        flash("You do not have permission to delete this word.", "danger")
         # Chuyển hướng về trang chi tiết của danh sách chứa từ này (nơi họ đang xem).
         return redirect(url_for('list_detail_page', list_id=entry_to_delete.list_id))
 
@@ -2434,7 +2361,7 @@ def delete_my_vocab_entry(entry_id):
         db.session.commit()  # Lưu các thay đổi vào database.
 
         # Hiển thị thông báo xóa thành công.
-        flash(f"Đã xóa thành công từ '{entry_original_word}' khỏi danh sách.", "success")
+        flash(f"Successfully removed word '{entry_original_word}' from list.", "success")
         # Ghi log ở server (tùy chọn).
         print(
             f"User {current_user_db_id} đã xóa entry ID {entry_id} ('{entry_original_word}') khỏi list ID {parent_list_id}"
@@ -2445,7 +2372,7 @@ def delete_my_vocab_entry(entry_id):
         #    hoàn tác lại các thay đổi (rollback).
         db.session.rollback()
         # Hiển thị thông báo lỗi cho người dùng.
-        flash(f"Có lỗi xảy ra khi xóa từ: {str(e)}", "danger")
+        flash(f"An error occurred while deleting the word: {str(e)}", "danger")
         # Ghi log lỗi chi tiết ở server.
         print(f"Lỗi khi user {current_user_db_id} xóa entry ID {entry_id}: {e}")
 
@@ -2518,13 +2445,13 @@ def edit_my_vocab_entry(entry_id):
         # 8. Gửi thông báo flash. Thông báo này sẽ được hiển thị cho người dùng
         #    khi trang được tải lại (ví dụ, sau khi JavaScript ở client nhận được
         #    response thành công và thực hiện window.location.reload()).
-        flash(f"Đã cập nhật thành công mục từ '{entry_to_edit.original_word}'.", "success")
+        flash(f"Entry '{entry_to_edit.original_word}' successfully updated.", "success")
 
         # Ghi log ở server (tùy chọn).
         print(f"User {current_user_db_id} đã sửa entry ID {entry_id} ('{entry_to_edit.original_word}')")
 
         # 9. Trả về JSON báo thành công cho client AJAX.
-        return jsonify({"success": True, "message": "Cập nhật mục từ thành công!"})
+        return jsonify({"success": True, "message": "Updated item successfully!"})
 
     except Exception as e:
         # 10. Nếu có bất kỳ lỗi nào xảy ra trong quá trình tương tác với database,
@@ -2533,7 +2460,7 @@ def edit_my_vocab_entry(entry_id):
         # Ghi log lỗi chi tiết ở server.
         print(f"Lỗi khi User {current_user_db_id} sửa entry ID {entry_id}: {e}")
         # Trả về JSON báo lỗi server.
-        return jsonify({"success": False, "message": f"Lỗi server khi cập nhật mục từ: {str(e)}"}), 500
+        return jsonify({"success": False, "message": f"Server error while updating item: {str(e)}"}), 500
 
 
 @app.route('/dashboard')  # Định nghĩa route URL là /dashboard
@@ -2552,14 +2479,14 @@ def dashboard_page():
     if not current_user_db_id:
         # Nếu chưa đăng nhập, hiển thị thông báo và chuyển hướng về trang chủ,
         # có thể kèm tham số để JavaScript tự mở modal đăng nhập.
-        flash("Vui lòng đăng nhập để truy cập dashboard.", "warning")
+        flash("Please log in to access dashboard.", "warning")
         return redirect(url_for('home', open_login_modal='true'))
 
     # 2. Lấy thông tin của người dùng hiện tại đang đăng nhập.
     #    Thông tin này dùng cho base template (header, sidebar) và để chào mừng người dùng.
     display_user_info = get_current_user_info()
     if not display_user_info:  # Trường hợp hiếm nếu session db_user_id có nhưng không lấy được user từ DB
-        flash("Không thể tải thông tin người dùng. Vui lòng đăng nhập lại.", "danger")
+        flash("Failed to load user information. Please log in again.", "danger")
         return redirect(url_for('logout'))  # Đăng xuất để làm sạch session
 
     # 3. Lấy các thông tin thống kê cho người dùng hiện tại.
@@ -2644,14 +2571,14 @@ def dashboard_page():
             # Thêm thông tin về tháng để thông báo rõ ràng hơn cho người dùng
             month_name = first_day_of_last_month.strftime('%B')  # Tên tháng đầy đủ (ví dụ: June)
             year = first_day_of_last_month.year
-            last_month_activity_message = f"Bạn chưa học gì trong tháng {month_name} năm {year} vừa rồi."
+            last_month_activity_message = f"You have not studied anything in the last month {month_name} year {year}."
     else:
         # Nếu người dùng mới tạo tài khoản trong tháng hiện tại, không hiển thị thông báo
         # last_month_activity_message vẫn sẽ là None.
         pass
 
     if activities_last_month == 0:
-        last_month_activity_message = "Bạn chưa học gì trong tháng vừa rồi."
+        last_month_activity_message = "You have not learned anything in the last month."
 
     return render_template('dashboard.html',
                            user_info=display_user_info,
@@ -2673,14 +2600,14 @@ def update_profile_info_route():
     current_user_db_id = session.get("db_user_id")
     if not current_user_db_id:
         # Nếu chưa đăng nhập, hiển thị thông báo và chuyển hướng về trang chủ.
-        flash("Vui lòng đăng nhập để cập nhật hồ sơ.", "warning")
+        flash("Please login to update profile.", "warning")
         return redirect(url_for('home'))  # Hoặc url_for('login_page')
 
     # 2. Lấy đối tượng User cần cập nhật từ database.
     user_to_update = User.query.get(current_user_db_id)
     if not user_to_update:
         # Nếu không tìm thấy user (trường hợp hiếm nếu session hợp lệ), báo lỗi và về trang chủ.
-        flash("Lỗi: Không tìm thấy thông tin người dùng để cập nhật.", "danger")
+        flash("Error: No user information found to update.", "danger")
         session.clear()  # Có thể xóa session hỏng
         return redirect(url_for('home'))
 
@@ -2693,7 +2620,7 @@ def update_profile_info_route():
 
     # 4. Validate dữ liệu mới (ví dụ: kiểm tra độ dài).
     if len(new_display_name) > 100:  # Giả sử giới hạn là 100 ký tự
-        flash("Tên hiển thị quá dài (tối đa 100 ký tự).", "danger")
+        flash("Display name too long (maximum 100 characters).", "danger")
         return redirect(url_for('profile_page'))  # Quay lại trang profile để hiển thị lỗi
 
     # 5. Cập nhật thông tin cho đối tượng User.
@@ -2706,7 +2633,7 @@ def update_profile_info_route():
     try:
         # 6. Lưu các thay đổi vào database.
         db.session.commit()
-        flash("Đã cập nhật thông tin hồ sơ thành công!", "success")
+        flash("Profile information updated successfully!", "success")
 
         # 7. (Quan trọng) Cập nhật lại thông tin trong session['user_info']
         #    để các phần khác của ứng dụng (ví dụ: header, sidebar) hiển thị tên mới ngay lập tức
@@ -2721,7 +2648,7 @@ def update_profile_info_route():
     except Exception as e:
         # 8. Nếu có lỗi khi commit vào database, hoàn tác lại thay đổi.
         db.session.rollback()
-        flash(f"Lỗi khi cập nhật thông tin: {str(e)}", "danger")
+        flash(f"Error updating information: {str(e)}", "danger")
         print(f"Lỗi khi user {user_to_update.email} cập nhật display_name: {e}")  # Log lỗi chi tiết.
 
     # 9. Sau khi xử lý (thành công hoặc lỗi), chuyển hướng người dùng trở lại trang Profile.

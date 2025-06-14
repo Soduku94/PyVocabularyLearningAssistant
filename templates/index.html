@@ -79,7 +79,7 @@
                     </a>
                 </div>
                 <div class="md:w-1/2">
-                    <img src="{{ url_for('static', filename='images/about_us_team.jpg') }}" alt="About Us - Our Team"
+                    <img src="{{ url_for('static', filename='images/aboutus.jpg') }}" alt="About Us - Our Team"
                          class="rounded-xl shadow-xl w-full h-auto object-cover max-h-[250px] sm:max-h-[300px] md:max-h-[350px]">
                 </div>
             </div>
@@ -165,13 +165,14 @@
                     <p class="text-gray-600 leading-relaxed text-md sm:text-lg mb-6 sm:mb-8">
                         G-Easy helps you practice your English vocabularies every time, everywhere!
                     </p>
-                    <a href="{{ url_for('my_lists_page') if user_info else url_for('home', open_login_modal='true') }}"
+                    <a href="
+                            {% if user_info %}{{ url_for('my_lists_page') }}{% else %}{{ url_for('home', open_login_modal='true') }}{% endif %}"
                        class="inline-block px-6 py-2.5 sm:px-8 sm:py-3 bg-orange-500 text-white font-semibold rounded-lg shadow-md hover:bg-orange-600 transition duration-300 ease-in-out transform hover:scale-105">
                         Check My Lists
                     </a>
                 </div>
                 <div class="md:w-1/2">
-                    <img src="{{ url_for('static', filename='images/practice_section_people.jpg') }}"
+                    <img src="{{ url_for('static', filename='images/ảnh 2.webp') }}"
                          alt="Practice Vocabularies"
                          class="rounded-xl shadow-xl w-full h-auto object-cover max-h-[250px] sm:max-h-[300px] md:max-h-[350px]">
                 </div>
@@ -190,9 +191,9 @@
                 const dots = document.querySelectorAll('.hero-dot');
 
                 const images = [
-                    "{{ url_for('static', filename='images/hero_banner_1.jpg') }}",
-                    "{{ url_for('static', filename='images/hero_banner_2.jpg') }}",
-                    "{{ url_for('static', filename='images/hero_banner_3.jpg') }}"
+                    "{{ url_for('static', filename='images/ảnh 1.jpg') }}",
+                    "{{ url_for('static', filename='images/ảnh 2.webp') }}",
+                    "{{ url_for('static', filename='images/ảnh 3.jpg') }}"
                     // Đảm bảo bạn có 3 file ảnh này trong static/images/
                 ];
                 let currentImageIndex = 0;
@@ -257,7 +258,7 @@
                 updateSlide(0);
                 // --- Kết thúc JavaScript cho Hero Slideshow ---
 
-                // ... (JavaScript khác của bạn nếu có) ...
+
             });
         </script>
     {% endblock %}

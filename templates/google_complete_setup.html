@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hoàn tất cài đặt tài khoản - G-Easy English</title>
+    <title>Complete Account Setup - G-Easy English</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -31,10 +31,10 @@
     <div class="text-center mb-8">
         <a href="{{ url_for('home') }}" class="text-3xl font-bold text-orange-500">G-EASY</a>
         <p class="text-sm text-gray-500">ENGLISH</p>
-        <h2 class="text-2xl font-semibold text-gray-700 mt-4">Hoàn tất cài đặt tài khoản</h2>
+        <h2 class="text-2xl font-semibold text-gray-700 mt-4">Complete Account Setup</h2>
         <p class="text-gray-600 text-sm mt-2">
-            Chào mừng bạn, <strong>{{ name if name else email }}</strong>!
-            Vui lòng đặt mật khẩu để có thể đăng nhập bằng email của bạn sau này.
+            Welcome, <strong>{{ name if name else email }}</strong>!
+            Please set a password so you can log in with your email later.
         </p>
     </div>
 
@@ -54,22 +54,23 @@
         {% endif %}
     {% endwith %}
     <form method="POST" action="{{ url_for('google_complete_setup_page') }}" class="space-y-6">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/> {# THÊM DÒNG NÀY VÀO ĐÂY #}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-        {# Hiển thị email (chỉ đọc) #}
+
         <div>
-            <label for="email_display" class="block text-sm font-medium text-gray-700">Email của bạn:</label>
+            <label for="email_display" class="block text-sm font-medium text-gray-700">Your Email:</label>
             <input type="email" id="email_display" value="{{ email }}" readonly
                    class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm bg-gray-50 cursor-not-allowed sm:text-sm">
         </div>
 
         <div>
-            <label for="new_password" class="block text-sm font-medium text-gray-700">Mật khẩu mới</label>
+            <label for="new_password" class="block text-sm font-medium text-gray-700">New Password</label>
             <input type="password" name="new_password" id="new_password" required autocomplete="new-password"
                    class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
         </div>
         <div>
-            <label for="confirm_password" class="block text-sm font-medium text-gray-700">Xác nhận Mật khẩu mới</label>
+            <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+
             <input type="password" name="confirm_password" id="confirm_password" required autocomplete="new-password"
                    class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
         </div>
@@ -77,7 +78,7 @@
         <div>
             <button type="submit"
                     class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500">
-                Đặt Mật khẩu và Đăng nhập
+                Set Password and Log In
             </button>
         </div>
     </form>
