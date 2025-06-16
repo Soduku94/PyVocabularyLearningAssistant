@@ -71,7 +71,8 @@
                                     <a href="{{ url_for('list_detail_page', list_id=r_list.id) }}"
                                        class="font-medium text-orange-600 hover:text-orange-700 truncate"
                                        title="{{ r_list.name }}">{{ r_list.name }}</a>
-                                    <span class="text-xs text-gray-400">{{ r_list.entries|length }} words</span>
+                                 <span class="text-xs text-gray-400">{{ r_list.entries.count() }} words</span></div>
+
                                 </div>
                                 <p class="text-xs text-gray-500">
                                     Created: {{ r_list.created_at.strftime('%b %d, %Y') }}</p>
