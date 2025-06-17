@@ -1996,25 +1996,26 @@ def admin_view_list_entries_page(owner_user_id, list_id):
     entries_in_list = VocabularyEntry.query.filter_by(list_id=vocab_list.id).order_by(
         VocabularyEntry.added_at.asc()).all()
 
-    # In ra thông tin debug ở server để theo dõi (tùy chọn)
-    print(
-        f"Admin (ID: {admin_user_info.get('id_from_session_or_email') if admin_user_info else 'Unknown'}) "
-        f"đang xem chi tiết list '{vocab_list.name}' (ID: {list_id}) của user '{list_owner.email}' (ID: {owner_user_id}) "
-        f"với {len(entries_in_list)} từ."
-    )
+    print(f"DEBUG: Preparing to render admin_list_entries.html for list ID: {list_id}")
+    print(f"DEBUG: Number of entries: {len(entries_in_list)}")
 
-    # 5. Render template 'admin/admin_list_entries.html' và truyền các dữ liệu cần thiết vào:
-    #    - user_info: Thông tin của Admin đang đăng nhập (cho base.html).
-    #    - current_list: Đối tượng VocabularyList đang được xem chi tiết.
-    #    - list_owner: Đối tượng User là chủ sở hữu của current_list.
-    #    - entries: Danh sách các đối tượng VocabularyEntry trong current_list.
+    # THÊM VÒNG LẶP KIỂM TRA CHI TIẾT TRƯỚC KHI RENDER
+    for i, entry in enumerate(entries_in_list):
+        if entry is None:
+            print(f"CRITICAL ERROR DEBUG: Entry at index {i} is None in entries_in_list!")
+        else:
+            print(
+                f"DEBUG: Entry {i}: ID={entry.id}, Type ID={type(entry.id).__name__}, Word='{entry.original_word}', Has_ID_Value={entry.id is not None}")
+            if not isinstance(entry.id, int):
+                print(
+                    f"CRITICAL ERROR DEBUG: Entry {i} has NON-INTEGER ID: Value='{entry.id}', Type='{type(entry.id).__name__}'")
+
+    # 5. Render template
     return render_template('admin/admin_list_entries.html',
                            user_info=admin_user_info,
                            current_list=vocab_list,
                            list_owner=list_owner,
                            entries=entries_in_list)
-
-
 @app.route('/google-complete-setup', methods=['GET', 'POST'])
 def google_complete_setup_page():
     """
