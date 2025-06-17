@@ -7,7 +7,6 @@
 
 {% block page_content %}
 <div class="bg-white p-6 md:p-8 rounded-lg shadow-lg">
-    {# ... (Phần thông tin list và owner, nút Back) ... #}
     <div class="mb-6 pb-4 border-b border-gray-200">
         <h1 class="text-2xl md:text-3xl font-semibold text-gray-800">
             List: <span class="text-orange-600">{{ current_list.name }}</span>
@@ -26,62 +25,79 @@
     {% if entries %}
         <div class="space-y-6">
             {% for entry in entries %}
-            <div class="entry-item p-4 border border-gray-200 rounded-md" data-entry-id="{{ entry.id }}"> {# Thêm data-entry-id ở đây #}
-                <div class="flex justify-between items-start">
-                    <div class="flex-grow pr-4">
-                        <h3 class="original-word-display text-lg font-semibold text-blue-700 mb-1">{{ entry.original_word }}</h3>
-                        <p class="text-xs text-gray-500 mb-1">Entry ID: {{ entry.id }} | Added: {{ entry.added_at.strftime('%Y-%m-%d %H:%M') }}</p>
-                        <p class="word-type-display text-sm text-gray-500 mb-1"><strong>Type:</strong> {{ entry.word_type if entry.word_type else 'N/A' }}</p>
 
-                        {% if entry.definition_en %}
-                        <p class="text-sm font-medium text-gray-700 mt-1">English Explanation:</p>
-                        <p class="definition-en-display text-sm text-gray-600 mb-1">{{ entry.definition_en }}</p>
-                        {% endif %}
+            {# Đảm bảo entry tồn tại và id của nó không phải là None #}
+            {% if entry and entry.id is not none %}
+                <div class="entry-item p-4 border border-gray-200 rounded-md" data-entry-id="{{ entry.id }}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-grow pr-4">
+                            <h3 class="original-word-display text-lg font-semibold text-blue-700 mb-1">{{ entry.original_word }}</h3>
+                            <p class="text-xs text-gray-500 mb-1">Entry ID: {{ entry.id }} | Added: {{ entry.added_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                            <p class="word-type-display text-sm text-gray-500 mb-1"><strong>Type:</strong> {{ entry.word_type if entry.word_type else 'N/A' }}</p>
 
-                        {% if entry.definition_vi %}
-                        <p class="text-sm font-medium text-gray-700 mt-1">Vietnamese Explanation:</p>
-                        <p class="definition-vi-display text-sm text-gray-600 mb-2">{{ entry.definition_vi }}</p>
-                        {% endif %}
+                            {% if entry.definition_en %}
+                            <p class="text-sm font-medium text-gray-700 mt-1">English Explanation:</p>
+                            <p class="definition-en-display text-sm text-gray-600 mb-1">{{ entry.definition_en }}</p>
+                            {% endif %}
 
-                        {% if entry.example_en and entry.example_en != "N/A" %}
-                        <p class="text-sm font-medium text-gray-700 mt-1">Example Sentence (English):</p>
-                        <p class="example-en-display text-sm text-gray-600 italic">{{ entry.example_en }}</p>
-                        {% endif %}
-                    </div>
-                    <div class="flex flex-col space-y-2 ml-auto flex-shrink-0 w-32"> {# Tăng chiều rộng nút một chút #}
-                        {# NÚT SỬA ENTRY CHO ADMIN #}
-                        <button type="button"
-                                class="edit-entry-btn w-full text-xs px-3 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 flex items-center justify-center"
-                                data-entry-id="{{ entry.id }}"
-                                data-original-word="{{ entry.original_word }}"
-                                data-word-type="{{ entry.word_type if entry.word_type else '' }}"
-                                data-def-en="{{ entry.definition_en if entry.definition_en else '' }}"
-                                data-def-vi="{{ entry.definition_vi if entry.definition_vi else '' }}"
-                                data-example-en="{{ entry.example_en if entry.example_en and entry.example_en != 'N/A' else '' }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                            Edit Entry
-                        </button>
+                            {% if entry.definition_vi %}
+                            <p class="text-sm font-medium text-gray-700 mt-1">Vietnamese Explanation:</p>
+                            <p class="definition-vi-display text-sm text-gray-600 mb-2">{{ entry.definition_vi }}</p>
+                            {% endif %}
 
-                        <form method="POST" action="{{ url_for('admin_delete_vocab_entry_route', entry_id=entry.id) }}"
-                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa từ \'{{ entry.original_word }}\' này khỏi danh sách không?');">
-                              <input type="hidden" name="list_id_for_redirect" value="{{ current_list.id }}">
-                              <input type="hidden" name="owner_id_for_redirect" value="{{ list_owner.id }}">
-                            <button type="submit" class="w-full text-xs px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 flex items-center justify-center">
+                            {% if entry.example_en and entry.example_en != "N/A" %}
+                            <p class="text-sm font-medium text-gray-700 mt-1">Example Sentence (English):</p>
+                            <p class="example-en-display text-sm text-gray-600 italic">{{ entry.example_en }}</p>
+                            {% endif %}
+
+                            {# THÊM PHẦN NÀY ĐỂ HIỂN THỊ NGHĨA TIẾNG VIỆT CỦA CÂU VÍ DỤ #}
+                            {% if entry.example_vi and entry.example_vi != "Không thể dịch câu ví dụ này." and entry.example_vi != "Không có câu ví dụ." %}
+                                <p class="text-sm font-medium text-gray-800 mt-3 mb-1">Example Sentence
+                                    (Vietnamese):</p>
+                                <p class="example-vi-display text-sm text-gray-600 italic mb-2">{{ entry.example_vi }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex flex-col space-y-2 ml-auto flex-shrink-0 w-32">
+                            {# NÚT SỬA ENTRY CHO ADMIN (GIỮ NGUYÊN) #}
+                            <button type="button"
+                                    class="edit-entry-btn w-full text-xs px-3 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 flex items-center justify-center"
+                                    data-entry-id="{{ entry.id }}"
+                                    data-original-word="{{ entry.original_word | default('') }}"
+                                    data-word-type="{{ entry.word_type | default('') }}"
+                                    data-def-en="{{ entry.definition_en | default('') }}"
+                                    data-def-vi="{{ entry.definition_vi | default('') }}"
+                                    data-example-en="{{ entry.example_en | default('') }}"
+                                    data-example-vi="{{ entry.example_vi | default('') }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                Edit Entry
+                            </button>
+
+                            {# NÚT XÓA ENTRY CHO ADMIN - ĐÃ CHUYỂN SANG AJAX #}
+                            <button type="button"
+                                    class="delete-entry-btn w-full text-xs px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 flex items-center justify-center"
+                                    data-entry-id="{{ entry.id }}"
+                                    data-original-word="{{ entry.original_word | default('this word') }}"
+                                    data-list-id="{{ current_list.id }}" {# Truyền list_id để redirect đúng #}
+                                    data-owner-id="{{ list_owner.id }}" {# Truyền owner_id để redirect đúng #}
+                                    {% if entry.id == 0 %} disabled title="Cannot delete: Invalid Entry ID" {% endif %}> {# Vô hiệu hóa nút nếu ID là 0 (sau |int thất bại) #}
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 Delete Entry
                             </button>
-                        </form>
+                        </div>
                     </div>
                 </div>
-            </div>
+            {% else %}
+                {# Thông báo lỗi khi có một mục từ không hợp lệ #}
+                <p style="color: red; font-weight: bold;">Lỗi: Phát hiện một mục từ không hợp lệ hoặc bị thiếu ID trong danh sách này. Đã bỏ qua.</p>
+            {% endif %}
             {% endfor %}
         </div>
     {% else %}
-         {# ... #}
+         <div class="text-center py-8 text-gray-500">No words found in this list.</div>
     {% endif %}
 </div>
 
-{# HTML CHO POP-UP SỬA ENTRY - Đặt ở cuối block page_content hoặc cuối file trước block scripts_extra #}
+{# HTML CHO POP-UP SỬA ENTRY (GIỮ NGUYÊN) #}
 <div id="editEntryModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 hidden modal-backdrop opacity-0">
     <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg transform transition-all duration-300 ease-in-out scale-95 opacity-0" id="editEntryDialog">
         <div class="flex justify-between items-center mb-4">
@@ -92,58 +108,40 @@
         </div>
         <form id="editEntryForm" class="space-y-4">
             <input type="hidden" name="entry_id_to_edit" id="entry_id_to_edit">
-
-            <div>
-                <label for="edit_original_word" class="block text-sm font-medium text-gray-700">Original Word (Read-only)</label>
-                <input type="text" name="original_word" id="edit_original_word" readonly
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 sm:text-sm">
-            </div>
-            <div>
-                <label for="edit_word_type" class="block text-sm font-medium text-gray-700">Word Type</label>
-                <input type="text" name="word_type" id="edit_word_type"
-                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm">
-            </div>
-            <div>
-                <label for="edit_definition_en" class="block text-sm font-medium text-gray-700">English Explanation</label>
-                <textarea name="definition_en" id="edit_definition_en" rows="3"
-                          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea>
-            </div>
-            <div>
-                <label for="edit_definition_vi" class="block text-sm font-medium text-gray-700">Vietnamese Explanation</label>
-                <textarea name="definition_vi" id="edit_definition_vi" rows="3"
-                          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea>
-            </div>
-            <div>
-                <label for="edit_example_en" class="block text-sm font-medium text-gray-700">English Example Sentence</label>
-                <textarea name="example_en" id="edit_example_en" rows="2"
-                          class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea>
-            </div>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div><label for="edit_original_word" class="block text-sm font-medium text-gray-700">Original Word (Read-only)</label><input type="text" name="original_word" id="edit_original_word" readonly class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 sm:text-sm"></div>
+            <div><label for="edit_word_type" class="block text-sm font-medium text-gray-700">Word Type</label><input type="text" name="word_type" id="edit_word_type" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></div>
+            <div><label for="edit_definition_en" class="block text-sm font-medium text-gray-700">English Explanation</label><textarea name="definition_en" id="edit_definition_en" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea></div>
+            <div><label for="edit_definition_vi" class="block text-sm font-medium text-gray-700">Vietnamese Explanation</label><textarea name="definition_vi" id="edit_definition_vi" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea></div>
+            <div><label for="edit_example_en" class="block text-sm font-medium text-gray-700">English Example Sentence</label><textarea name="example_en" id="edit_example_en" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea></div>
+            <div><label for="edit_example_vi" class="block text-sm font-medium text-gray-700">Vietnamese Example Sentence</label><textarea name="example_vi" id="edit_example_vi" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"></textarea></div>
 
             <div class="pt-5 sm:flex sm:flex-row-reverse">
-                <button type="submit" id="confirmEditEntryBtn"
-                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-500 text-base font-medium text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm">
-                    Save Changes
-                </button>
-                <button type="button" id="cancelEditEntryModalBtn"
-                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">
-                    Cancel
-                </button>
+                <button type="submit" id="confirmEditEntryBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-500 text-base font-medium text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm">Save Changes</button>
+                <button type="button" id="cancelEditEntryModalBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm">Cancel</button>
             </div>
         </form>
     </div>
 </div>
-{% endblock %}
 
+{% endblock %}
 
 {% block scripts_extra %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // CSRF Token - Khai báo biến csrfToken cục bộ cho script này
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : null;
+    if (!csrfToken) {
+        console.warn("CSRF Token meta tag not found or token is missing. AJAX POST requests might fail if CSRF is enforced.");
+    }
+
     // --- JavaScript for Edit Entry Modal ---
     const editEntryModal = document.getElementById('editEntryModal');
     const editEntryDialog = document.getElementById('editEntryDialog');
     const openEditEntryButtons = document.querySelectorAll('.edit-entry-btn');
-    const closeEditEntryModalBtn = document.getElementById('closeEditEntryModalBtn'); // Nút X trên modal
-    const cancelEditEntryModalBtn = document.getElementById('cancelEditEntryModalBtn'); // Nút Cancel trong form
+    const closeEditEntryModalBtn = document.getElementById('closeEditEntryModalBtn');
+    const cancelEditEntryModalBtn = document.getElementById('cancelEditEntryModalBtn');
     const editEntryForm = document.getElementById('editEntryForm');
 
     // Các input fields trong edit modal
@@ -153,15 +151,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const editDefEnInput = document.getElementById('edit_definition_en');
     const editDefViInput = document.getElementById('edit_definition_vi');
     const editExampleEnInput = document.getElementById('edit_example_en');
+    const editExampleViInput = document.getElementById('edit_example_vi');
+
 
     function openEditModal(entryData) {
         if (editEntryModal && editEntryDialog) {
             entryIdToEditInput.value = entryData.entryId;
             editOriginalWordInput.value = entryData.originalWord;
-            editWordTypeInput.value = entryData.wordType;
-            editDefEnInput.value = entryData.defEn;
-            editDefViInput.value = entryData.defVi;
-            editExampleEnInput.value = entryData.exampleEn;
+            editWordTypeInput.value = entryData.wordType || '';
+            editDefEnInput.value = entryData.defEn || '';
+            editDefViInput.value = entryData.defVi || '';
+            editExampleEnInput.value = entryData.exampleEn || '';
+            editExampleViInput.value = entryData.exampleVi || '';
 
             editEntryModal.classList.remove('hidden', 'opacity-0');
             document.body.classList.add('modal-active');
@@ -191,16 +192,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 wordType: this.dataset.wordType,
                 defEn: this.dataset.defEn,
                 defVi: this.dataset.defVi,
-                exampleEn: this.dataset.exampleEn
+                exampleEn: this.dataset.exampleEn,
+                exampleVi: this.dataset.exampleVi
             };
             openEditModal(entryData);
         });
     });
 
-    if (closeEditEntryModalBtn) { // Nút X
+    if (closeEditEntryModalBtn) {
         closeEditEntryModalBtn.addEventListener('click', closeEditModal);
     }
-    if (cancelEditEntryModalBtn) { // Nút Cancel trong form
+    if (cancelEditEntryModalBtn) {
         cancelEditEntryModalBtn.addEventListener('click', closeEditModal);
     }
 
@@ -212,25 +214,37 @@ document.addEventListener('DOMContentLoaded', function () {
                 word_type: editWordTypeInput.value.trim(),
                 definition_en: editDefEnInput.value.trim(),
                 definition_vi: editDefViInput.value.trim(),
-                example_en: editExampleEnInput.value.trim()
-                // original_word không gửi đi vì chúng ta quyết định không cho sửa nó ở đây
+                example_en: editExampleEnInput.value.trim(),
+                example_vi: editExampleViInput.value.trim()
             };
 
-            // Tạo URL động cho fetch
             const actionUrl = "{{ url_for('admin_edit_vocab_entry_route', entry_id=0) }}".replace('/0', '/' + entryId);
+            const headers = { 'Content-Type': 'application/json' };
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            } else {
+                console.error("CSRF Token is missing. Cannot proceed with edit request.");
+                alert("A security token is missing. Please refresh the page and try again.");
+                return;
+            }
 
             fetch(actionUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', /* CSRF Token nếu cần */ },
+                headers: headers,
                 body: JSON.stringify(payload)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(errData => {
+                        throw new Error(errData.message || 'Server error');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     closeEditModal();
-                    // Cập nhật UI động hoặc reload để thấy thay đổi
-                    // alert(data.message || 'Cập nhật thành công!'); // Có thể dùng flash từ server khi reload
-                    window.location.reload(); // Đơn giản nhất là reload
+                    window.location.reload();
                 } else {
                     alert('Lỗi khi cập nhật: ' + (data.message || 'Lỗi không xác định.'));
                 }
@@ -242,83 +256,44 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    if (editEntryModal) { // Đóng khi click ra ngoài
+    if (editEntryModal) {
         editEntryModal.addEventListener('click', function(event) {
             if (event.target === editEntryModal) {
                 closeEditModal();
             }
         });
     }
-    document.addEventListener('keydown', function(event) { // Đóng khi bấm Escape
+    document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape' && editEntryModal && !editEntryModal.classList.contains('hidden')) {
             closeEditModal();
         }
     });
     // --- End of JavaScript for Edit Entry Modal ---
 
-    // --- JavaScript for Listen Buttons (Giữ nguyên code này) ---
+    // --- JavaScript for Listen Buttons ---
     const listenButtons = document.querySelectorAll('.listen-btn');
-    // ... (code cho listenButtons của bạn) ...
-    const INTRA_ITEM_SPEECH_DELAY = 750;
     listenButtons.forEach(button => {
         button.addEventListener('click', function () {
-            if (typeof responsiveVoice === 'undefined') {
-                alert('ResponsiveVoice JS chưa sẵn sàng...');
+            if (typeof responsiveVoice === 'undefined' || !responsiveVoice.voiceSupport()) {
+                alert('ResponsiveVoice JS chưa sẵn sàng hoặc trình duyệt không hỗ trợ. Vui lòng kiểm tra lại hoặc thử làm mới trang.');
+                console.error('ResponsiveVoice object not ready or voice support failed.');
                 return;
             }
+
             const word = this.dataset.word;
-            const definitionVi = this.dataset.defVi;
+            const definitionEn = this.dataset.defEn;
             const exampleEn = this.dataset.exampleEn;
-            responsiveVoice.cancel();
-            let textsToPlay = [];
-            if (word && word.trim() !== "") { textsToPlay.push({text: word, voice: "UK English Male"});}
-            if (definitionVi && definitionVi.trim() !== "" && definitionVi.trim().toLowerCase() !== word.trim().toLowerCase()) { textsToPlay.push({text: definitionVi, voice: "Vietnamese Female"});}
-            if (exampleEn && exampleEn.trim() !== "") { textsToPlay.push({text: exampleEn, voice: "UK English Male"});}
-            let currentIndex = 0;
-            function playNextInQueue() {
-                if (currentIndex < textsToPlay.length) {
-                    let currentPlayItem = textsToPlay[currentIndex];
-                    responsiveVoice.speak(currentPlayItem.text, currentPlayItem.voice, {
-                        onend: function () { currentIndex++; setTimeout(playNextInQueue, INTRA_ITEM_SPEECH_DELAY); }
-                    });
-                }
-            }
-            if (textsToPlay.length > 0) { playNextInQueue(); } else { alert("Không có nội dung hợp lệ để đọc."); }
+
+            // Gọi hàm speakEntryContent toàn cục từ base.html
+            window.speakEntryContent(word, definitionEn, exampleEn);
         });
     });
-    // --- End of JavaScript for Listen Buttons ---
 
-    // --- JavaScript for Play All Button (Giữ nguyên code này) ---
-    const playAllButton = document.getElementById('playAllBtn');
-    // ... (code cho playAllButton của bạn) ...
-    const INTER_WORD_PLAY_ALL_DELAY = 2500;
-    if (playAllButton) {
-        playAllButton.addEventListener('click', function () {
-            if (typeof responsiveVoice === 'undefined') { alert('ResponsiveVoice JS chưa sẵn sàng...'); return; }
-            const currentListListenButtons = document.querySelectorAll('.listen-btn');
-            let uniqueWordsToPlay = new Set();
-            currentListListenButtons.forEach(button => {
-                const word = button.dataset.word;
-                if (word && word.trim() !== "") { uniqueWordsToPlay.add(word); }
-            });
-            if (uniqueWordsToPlay.size === 0) { alert('Không có từ nào trong danh sách này để phát âm.'); return; }
-            responsiveVoice.cancel();
-            let masterPlayQueue = [];
-            uniqueWordsToPlay.forEach(word => { masterPlayQueue.push({text: word, voice: "UK English Male"}); });
-            let currentMasterIndex = 0;
-            function playNextInMasterQueue() {
-                if (currentMasterIndex < masterPlayQueue.length) {
-                    let currentPlayItem = masterPlayQueue[currentMasterIndex];
-                    console.log("Play All (English words only) - Playing:", currentPlayItem.text);
-                    responsiveVoice.speak(currentPlayItem.text, currentPlayItem.voice, {
-                        onend: function () { currentMasterIndex++; setTimeout(playNextInMasterQueue, INTER_WORD_PLAY_ALL_DELAY); }
-                    });
-                } else { console.log("Play All (English words only) đã hoàn tất."); }
-            }
-            if (masterPlayQueue.length > 0) { playNextInMasterQueue(); } else { alert("Không có nội dung hợp lệ để đọc cho Play All."); }
-        });
-    }
-    // --- End of JavaScript for Play All Button ---
+    // --- GỌI HÀM SETUP PLAY ALL BUTTON TẠI ĐÂY ---
+    // 'playAllBtn' là ID của nút Play All trên trang này.
+    // '.entry-item' là selector để tìm các khối thông tin của từng từ.
+    // Hàm này được định nghĩa trong base.html và cần được gọi để kích hoạt nút.
+    window.setupPlayAllButton('playAllBtn', '.entry-item');
 });
 </script>
 {% endblock %}
