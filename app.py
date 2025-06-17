@@ -4,7 +4,7 @@
 import os  # Để tương tác với hệ điều hành, ví dụ: đọc biến môi trường
 from datetime import datetime, timedelta  # Để làm việc với ngày giờ, ví dụ: created_at, added_at
 from functools import wraps  # Để tạo decorator (ví dụ: @login_required, @admin_required)
-
+from models import db, APILog
 # --- Flask and Related Extensions ---
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_sqlalchemy import \
@@ -74,6 +74,60 @@ from functools import wraps
 from flask import session, flash, redirect, url_for
 from models import User  # Đảm bảo User model đã được import
 
+
+
+
+def get_tatoeba_examples(word, source_lang='eng', target_lang='vie'):
+    """
+    Lấy câu ví dụ tiếng Anh và bản dịch tiếng Việt từ Tatoeba API.
+    Trả về một dictionary {'example_en': '...', 'example_vi': '...'} nếu tìm thấy,
+    hoặc None nếu không tìm thấy.
+    """
+    TATOEBA_API_URL = f"https://tatoeba.org/en/api_v0/search?from={source_lang}&query={word}&orphans=no&unapproved=no&trans_filter=limit&to={target_lang}"
+
+    api_name = "tatoeba_api"
+    user_id_to_log = session.get("db_user_id")
+    log_entry = APILog(api_name=api_name, request_details=f"Word: {word}", user_id=user_id_to_log, success=False)
+
+    try:
+        response = requests.get(TATOEBA_API_URL, timeout=10)
+        log_entry.status_code = response.status_code
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get('results'):
+            for result in data['results']:
+                example_en = result.get('text')
+                example_vi = None
+
+                if result.get('translations'):
+                    for trans_list in result['translations']:
+                        for trans_obj in trans_list:
+                            if trans_obj.get('lang') == target_lang:
+                                example_vi = trans_obj.get('text')
+                                break
+                        if example_vi:
+                            break
+
+                if example_en and example_vi:
+                    log_entry.success = True
+                    return {'example_en': example_en, 'example_vi': example_vi}
+
+        log_entry.error_message = "No matching example sentence or translation found."
+
+    except requests.exceptions.RequestException as e:
+        log_entry.error_message = f"Request error to Tatoeba API: {str(e)}"
+    except Exception as e:
+        log_entry.error_message = f"Unexpected error processing Tatoeba response: {str(e)}"
+    finally:
+        try:
+            db.session.add(log_entry)
+            db.session.commit()
+        except Exception as db_e:
+            db.session.rollback()
+            print(f"CRITICAL ERROR: Không thể ghi API log vào database: {db_e}")
+
+    return None
 
 def login_required(f):
     """
@@ -476,7 +530,7 @@ def login():
         if not data:  # Trường hợp get_json() trả về None (ví dụ: body rỗng dù content-type đúng)
             print("ERROR: No JSON data received in POST to /login")  # Debug
             return jsonify(
-                {"success": False, "message": "Failed to receive JSON data from request."}), 400 # 400 Bad Request
+                {"success": False, "message": "Failed to receive JSON data from request."}), 400  # 400 Bad Request
 
         email = data.get('email')
         password = data.get('password')
@@ -518,11 +572,11 @@ def login():
             print(f"Login SUCCESS for {email}")  # Debug
 
             # Trả về JSON báo thành công cho client (AJAX)
-            return jsonify({"success": True, "message": "Login successful!"}) # HTTP 200 OK (mặc định)
+            return jsonify({"success": True, "message": "Login successful!"})  # HTTP 200 OK (mặc định)
         else:
             # Đăng nhập thất bại: Sai email, sai mật khẩu, hoặc user đăng nhập bằng Google và chưa đặt mật khẩu hệ thống.
             print(f"Login FAILED for {email}: Invalid credentials or no password_hash set for this email.")  # Debug
-            return jsonify({"success": False, "message": "Incorrect email or password."}), 401 # 401 Unauthorized
+            return jsonify({"success": False, "message": "Incorrect email or password."}), 401  # 401 Unauthorized
 
     # Trường hợp khác (ví dụ: request không phải GET cũng không phải POST hợp lệ, không nên xảy ra với route này)
     return jsonify({"success": False, "message": "Method not supported."}), 405  # 405 Method Not Allowed
@@ -1021,33 +1075,17 @@ def get_word_details_dictionaryapi(word):
     return []
 
 
-@app.route('/enter-words',
-           methods=['GET', 'POST'])
-# Route này xử lý cả GET (hiển thị trang) và POST (submit form generate)
-@login_required  # <<< Bỏ comment dòng này để kích hoạt bảo vệ route
+# --- CHỈNH SỬA HÀM enter_words_page ---
+@app.route('/enter-words', methods=['GET', 'POST'])
+@login_required
 def enter_words_page():
-    """
-    Hiển thị trang "Enter New Words" và xử lý việc người dùng nhập từ,
-    generate thông tin (loại từ, nghĩa, ví dụ, IPA) và hiển thị kết quả.
-    Hỗ trợ việc thêm từ vào một danh sách cụ thể nếu target_list_id được cung cấp.
-    Sử dụng Flask-WTF để xử lý form và CSRF protection.
-    """
-
     log_user_activity(session.get("db_user_id"), 'accessed_enter_words_page')
     form = GenerateWordsForm()
-
     display_user_info = get_current_user_info()
-
     user_lists = []
     target_list_info = None
-
-    # current_user_db_id đã có sẵn từ decorator @login_required
-    # Nếu decorator được dùng, current_user_db_id sẽ là user.id
-    # Nếu không dùng decorator và bạn vẫn cần ID, thì dòng này là cần thiết
     current_user_db_id = session.get("db_user_id")
 
-    # Nếu người dùng đã đăng nhập, lấy danh sách các list của họ
-    # Kiểm tra display_user_info ở đây là tốt vì nó cũng xác nhận user có tồn tại.
     if display_user_info and current_user_db_id:
         user_lists = VocabularyList.query.filter_by(user_id=current_user_db_id).order_by(
             VocabularyList.name.asc()).all()
@@ -1078,90 +1116,66 @@ def enter_words_page():
         if words_list:
             for original_word in words_list:
                 print(f"Đang xử lý từ: {original_word}")
-                detailed_entries = get_word_details_dictionaryapi(original_word)
 
-                # Khởi tạo dictionary rỗng cho từ hiện tại nếu nó chưa tồn tại hoặc không phải là list
-                # Đây là dòng an toàn hơn để tránh KeyError nếu có bất kỳ logic nào
-                # đã thay đổi kiểu dữ liệu của processed_results_dict[original_word]
-                if original_word not in processed_results_dict or not isinstance(processed_results_dict[original_word],
-                                                                                 list):
-                    processed_results_dict[original_word] = []
-
-                # Khởi tạo các biến với giá trị mặc định trước khi xử lý
+                # Khởi tạo các biến với giá trị mặc định
+                english_definition = "No English definition found."
                 word_type = "N/A"
                 ipa_text = "N/A"
-                english_definition = "No English definition found."
-                vietnamese_explanation = "Không tìm thấy giải thích tiếng Việt."
                 example_en = "N/A"
                 vietnamese_example_sentence = "Không có câu ví dụ."
 
-                if detailed_entries:
-                    entry_detail = detailed_entries[0]
+                # --- BƯỚC 1: LẤY ĐỊNH NGHĨA & IPA TỪ DICTIONARYAPI.DEV (BỎ QUA OXFORD) ---
+                # Vẫn giữ logic này để lấy định nghĩa tiếng Anh và IPA.
+                print(f"DEBUG: Getting definition/IPA from dictionaryapi.dev for '{original_word}'.")
+                detailed_entries_from_dict_api = get_word_details_dictionaryapi(original_word)
 
-                    # Cập nhật các giá trị từ API nếu có
-                    word_type = entry_detail.get("type", word_type)
-                    ipa_text = entry_detail.get("ipa", ipa_text)
+                if detailed_entries_from_dict_api:
+                    entry_detail = detailed_entries_from_dict_api[0]
+                    english_definition = entry_detail.get("definition_en", "No English definition found.")
+                    word_type = entry_detail.get("type", "N/A")
+                    ipa_text = entry_detail.get("ipa", "N/A")
 
-                    english_definition_from_api = entry_detail.get("definition_en")
-                    if english_definition_from_api and english_definition_from_api.strip():
-                        english_definition = english_definition_from_api
+                # --- BƯỚC 2: CHỈ LẤY CÂU VÍ DỤ TỪ TATOEBA API ---
+                # Nếu Tatoeba không có, sẽ không có câu ví dụ.
+                print(f"DEBUG: Attempting Tatoeba API for example for '{original_word}'.")
+                tatoeba_example_data = get_tatoeba_examples(original_word)  # GỌI TATOEBA API
 
-                    example_en_from_api = entry_detail.get("example_en")
-                    if example_en_from_api and example_en_from_api.strip():
-                        example_en = example_en_from_api
+                if tatoeba_example_data:
+                    example_en = tatoeba_example_data['example_en']
+                    vietnamese_example_sentence = tatoeba_example_data['example_vi']
+                    print(f"DEBUG: Successfully got example from Tatoeba for '{original_word}'.")
+                else:
+                    # Nếu Tatoeba không có, example_en và vietnamese_example_sentence sẽ giữ giá trị mặc định ("N/A", "Không có câu ví dụ.")
+                    print(f"DEBUG: Tatoeba failed to find example for '{original_word}'. No example will be provided.")
 
-                    # Dịch định nghĩa tiếng Anh
-                    if english_definition != "No English definition found." and english_definition.lower() != "n/a":
-                        if english_definition.lower() != original_word.lower():
-                            translated_definition = translate_with_deep_translator(english_definition)
-                            if translated_definition and translated_definition.strip().lower() != english_definition.strip().lower():
-                                vietnamese_explanation = translated_definition
-                            else:
-                                print(
-                                    f"  Dịch định nghĩa thất bại hoặc không thay đổi cho: '{english_definition[:50]}...'.")
-                                vietnamese_explanation = "Không thể dịch giải thích này."
-                        else:
-                            translated_word_meaning = translate_with_deep_translator(original_word)
-                            if translated_word_meaning and translated_word_meaning.strip().lower() != original_word.strip().lower():
-                                vietnamese_explanation = translated_word_meaning
-                            else:
-                                print(f"  Dịch từ gốc (fallback) thất bại cho '{original_word}'.")
-                                vietnamese_explanation = "Không thể dịch từ này."
-
-                    # DỊCH CÂU VÍ DỤ NẾU CÓ VÀ HỢP LỆ
-                    if example_en != "N/A":
-                        translated_example = translate_with_deep_translator(example_en)
-                        if translated_example and translated_example.strip().lower() != example_en.strip().lower():
-                            vietnamese_example_sentence = translated_example
-                        else:
-                            print(f"  Dịch câu ví dụ thất bại hoặc không thay đổi cho: '{example_en[:50]}...'.")
-                            vietnamese_example_sentence = "Không thể dịch câu ví dụ này."
+                # --- BƯỚC 3: DỊCH ĐỊNH NGHĨA TIẾNG ANH SANG TIẾNG VIỆT ---
+                # Logic này giữ nguyên để dịch english_definition
+                vietnamese_explanation = "Không thể dịch giải thích này."
+                if english_definition and english_definition.strip() and english_definition.lower() != "n/a" and english_definition.lower() != "no english definition found.":
+                    if english_definition.lower() != original_word.lower():
+                        translated_definition = translate_with_deep_translator(english_definition)
+                        if translated_definition and translated_definition.strip().lower() != english_definition.strip().lower():
+                            vietnamese_explanation = translated_definition
                     else:
-                        vietnamese_example_sentence = "Không có câu ví dụ."
+                        translated_word_meaning = translate_with_deep_translator(original_word)
+                        if translated_word_meaning and translated_word_meaning.strip().lower() != original_word.strip().lower():
+                            vietnamese_explanation = translated_word_meaning
 
-                    processed_results_dict[original_word].append({
-                        "type": word_type,
-                        "definition_en": english_definition,
-                        "definition_vi": vietnamese_explanation,
-                        "example_sentence": example_en,
-                        "example_sentence_vi": vietnamese_example_sentence,
-                        "ipa": ipa_text
-                    })
-                else:  # Không tìm thấy chi tiết từ API từ điển (detailed_entries rỗng)
-                    vietnamese_translation_of_word = translate_with_deep_translator(original_word)
-                    processed_results_dict[original_word].append({
-                        "type": "N/A",
-                        "definition_en": original_word,
-                        "definition_vi": vietnamese_translation_of_word if (
-                                vietnamese_translation_of_word and vietnamese_translation_of_word.strip().lower() != original_word.strip().lower()) else "Không thể dịch từ này.",
-                        "example_sentence": "N/A",
-                        "example_sentence_vi": "Không có câu ví dụ.",
-                        "ipa": "N/A"
-                    })
+                # --- TỔNG HỢP KẾT QUẢ CUỐI CÙNG ---
+                processed_results_dict[original_word] = []
+                processed_results_dict[original_word].append({
+                    "type": word_type,
+                    "definition_en": english_definition,
+                    "definition_vi": vietnamese_explanation,
+                    "example_sentence": example_en,  # example_en đã được lấy từ Tatoeba
+                    "example_sentence_vi": vietnamese_example_sentence,  # example_sentence_vi đã được lấy từ Tatoeba
+                    "ipa": ipa_text
+                })
                 print(f"  Kết quả cho '{original_word}': {processed_results_dict[original_word]}")
 
         elif input_str:
-            flash("Please enter valid words, separated by commas.", "info")
+            flash("Vui lòng nhập từ hợp lệ, cách nhau bằng dấu phẩy.", "info")
+
     if request.method == 'GET':
         if not target_list_info and not processed_results_dict:
             form.words_input.data = session.pop('last_processed_input', '')
@@ -1177,7 +1191,6 @@ def enter_words_page():
                            results=processed_results_dict,
                            user_existing_lists=user_lists,
                            target_list_info=target_list_info)
-
 
 # --- Sửa đổi hàm save_list_route ---
 @app.route('/save-list', methods=['POST'])
@@ -1524,6 +1537,7 @@ def rename_list_route(list_id):
         print(f"Lỗi khi Admin (ID: {admin_user_id}) đổi tên list ID {list_id}: {e}")  # Log lỗi chi tiết.
         return jsonify({"success": False, "message": f"Lỗi server khi đổi tên danh sách: {str(e)}"}), 500
 
+
 @app.route('/admin/entry/<int:entry_id>/delete', methods=['POST'])
 @admin_required
 def admin_delete_vocab_entry_route(entry_id):
@@ -1543,7 +1557,7 @@ def admin_delete_vocab_entry_route(entry_id):
     # --- Lấy thông tin cần thiết TRƯỚC KHI XÓA ENTRY ---
     parent_list_id = entry_to_delete.list_id
     parent_list_owner_id = entry_to_delete.vocabulary_list.user_id
-    entry_original_word = entry_to_delete.original_word # <<< LẤY GIÁ TRỊ TẠI ĐÂY
+    entry_original_word = entry_to_delete.original_word  # <<< LẤY GIÁ TRỊ TẠI ĐÂY
 
     print(f"DEBUG: Found entry '{entry_original_word}' (ID: {entry_id}) for deletion.")
 
@@ -1562,7 +1576,8 @@ def admin_delete_vocab_entry_route(entry_id):
         return jsonify({
             "success": True,
             "message": f"Successfully deleted entry '{entry_original_word}'.",
-            "redirect_to": url_for('admin_view_list_entries_page', owner_user_id=parent_list_owner_id, list_id=parent_list_id)
+            "redirect_to": url_for('admin_view_list_entries_page', owner_user_id=parent_list_owner_id,
+                                   list_id=parent_list_id)
         })
 
     except Exception as e:
@@ -2020,6 +2035,8 @@ def admin_view_list_entries_page(owner_user_id, list_id):
                            current_list=vocab_list,
                            list_owner=list_owner,
                            entries=entries_in_list)
+
+
 @app.route('/google-complete-setup', methods=['GET', 'POST'])
 def google_complete_setup_page():
     """
@@ -2128,9 +2145,6 @@ def log_user_activity(user_id, activity_type, details=None):
             print(f"Error logging activity for user {user_id}: {activity_type} - {e}")
 
 
-
-
-
 @app.route('/admin/entry/<int:entry_id>/edit', methods=['POST'])
 @admin_required  # Đảm bảo chỉ người dùng có quyền Admin mới có thể truy cập route này
 def admin_edit_vocab_entry_route(entry_id):
@@ -2209,8 +2223,8 @@ def admin_api_logs_page():
     admin_user_info = get_current_user_info()
 
     # --- PHÂN TRANG (PAGINATION) ---
-    page = request.args.get('page', 1, type=int) # Lấy số trang từ URL (mặc định là 1)
-    per_page = 10 # Số lượng log trên mỗi trang (bạn có thể thay đổi, ví dụ 20, 50, 100)
+    page = request.args.get('page', 1, type=int)  # Lấy số trang từ URL (mặc định là 1)
+    per_page = 10  # Số lượng log trên mỗi trang (bạn có thể thay đổi, ví dụ 20, 50, 100)
 
     # Lấy các bản ghi log API từ database với phân trang
     # paginate() trả về một đối tượng Pagination
@@ -2218,10 +2232,10 @@ def admin_api_logs_page():
     pagination = APILog.query.order_by(APILog.timestamp.desc()).paginate(
         page=page,
         per_page=per_page,
-        error_out=False # Nếu page number không hợp lệ, không báo lỗi 404
+        error_out=False  # Nếu page number không hợp lệ, không báo lỗi 404
     )
 
-    logs = pagination.items # Lấy danh sách các log cho trang hiện tại
+    logs = pagination.items  # Lấy danh sách các log cho trang hiện tại
 
     # --- THỐNG KÊ TỔNG QUAN (GIỮ NGUYÊN) ---
     total_calls = APILog.query.count()
@@ -2247,7 +2261,8 @@ def admin_api_logs_page():
                            user_info=admin_user_info,
                            logs=logs,
                            stats=stats,
-                           pagination=pagination) # TRUYỀN ĐỐI TƯỢNG PHÂN TRANG MỚI VÀO
+                           pagination=pagination)  # TRUYỀN ĐỐI TƯỢNG PHÂN TRANG MỚI VÀO
+
 
 @app.route('/my-lists/<int:list_id_to_delete>/delete', methods=['POST'])
 # @login_required # Nếu bạn đã có decorator này, hãy sử dụng nó ở đây để thay thế cho kiểm tra session thủ công
