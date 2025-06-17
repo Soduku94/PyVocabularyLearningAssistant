@@ -1524,52 +1524,56 @@ def rename_list_route(list_id):
         print(f"Lỗi khi Admin (ID: {admin_user_id}) đổi tên list ID {list_id}: {e}")  # Log lỗi chi tiết.
         return jsonify({"success": False, "message": f"Lỗi server khi đổi tên danh sách: {str(e)}"}), 500
 
-
-@app.route('/admin/entry/<int:entry_id>/delete', methods=['POST'])  # Đặt tên route rõ ràng hơn cho Admin
-@admin_required  # Đảm bảo chỉ Admin mới truy cập
-def admin_delete_entry_route(entry_id):  # Đổi tên hàm cho rõ ràng hơn
+@app.route('/admin/entry/<int:entry_id>/delete', methods=['POST'])
+@admin_required
+def admin_delete_vocab_entry_route(entry_id):
     """
-    Xử lý yêu cầu của Admin để xóa một VocabularyEntry cụ thể khỏi một danh sách.
+    Xử lý yêu cầu của Admin để xóa một VocabularyEntry (mục từ vựng) cụ thể
+    khỏi một danh sách của người dùng.
     """
-    admin_user_info = get_current_user_info()  # Lấy thông tin Admin đang đăng nhập
+    admin_user_info = get_current_user_info()
 
-    # 1. Tìm VocabularyEntry cần xóa trong database.
     entry_to_delete = VocabularyEntry.query.get(entry_id)
-    # Hoặc dùng get_or_404(entry_id) nếu bạn muốn Flask tự trả về lỗi 404 HTML (nhưng redirect thường tốt hơn cho UX ở đây).
 
     if not entry_to_delete:
-        flash("No vocabulary entry found to delete.", "danger")
-        # Redirect về một trang admin phù hợp, ví dụ dashboard hoặc trang quản lý user/list trước đó.
-        # request.referrer có thể không đáng tin cậy hoặc không tồn tại.
-        return redirect(request.referrer or url_for('admin_bp.dashboard'))  # Giả sử có admin_bp.dashboard
+        flash("Không tìm thấy mục từ vựng để xóa.", "danger")
+        # Với AJAX, bạn nên trả về JSON thay vì redirect trực tiếp ở đây
+        return jsonify({"success": False, "message": "Vocabulary entry not found."}), 404
 
-    # 2. Lấy thông tin cần thiết cho việc redirect và thông báo TRƯỚC KHI xóa.
+    # --- Lấy thông tin cần thiết TRƯỚC KHI XÓA ENTRY ---
     parent_list_id = entry_to_delete.list_id
-    # Để redirect về trang admin xem chi tiết list của user, chúng ta cần owner_id của list đó.
     parent_list_owner_id = entry_to_delete.vocabulary_list.user_id
-    entry_original_word = entry_to_delete.original_word
+    entry_original_word = entry_to_delete.original_word # <<< LẤY GIÁ TRỊ TẠI ĐÂY
 
-    # 3. Admin có quyền xóa entry của bất kỳ user nào, nên không cần kiểm tra quyền sở hữu của entry
-    #    với admin_user_id, miễn là admin đã được xác thực bởi @admin_required.
+    print(f"DEBUG: Found entry '{entry_original_word}' (ID: {entry_id}) for deletion.")
 
     try:
-        # 4. Thực hiện xóa VocabularyEntry.
         db.session.delete(entry_to_delete)
-        db.session.commit()  # Lưu thay đổi vào database.
+        db.session.commit()
 
-        flash(f"Successfully removed entry '{entry_original_word}' from list.",
-              "success_admin")  # Use separate category for admin flash
+        flash(f"Đã xóa thành công mục từ '{entry_original_word}' khỏi danh sách.", "success")
+        admin_email_for_log = admin_user_info.get('email') if admin_user_info else "Unknown Admin"
         print(
-            f"Admin ({admin_user_info.get('email')}) đã xóa entry ID {entry_id} ('{entry_original_word}') từ list ID {parent_list_id} của user ID {parent_list_owner_id}")  # Debug
+            f"Admin ({admin_email_for_log}) đã xóa entry ID {entry_id} ('{entry_original_word}') "
+            f"khỏi list ID {parent_list_id} của user ID {parent_list_owner_id}"
+        )
+
+        # Với AJAX, trả về JSON response
+        return jsonify({
+            "success": True,
+            "message": f"Successfully deleted entry '{entry_original_word}'.",
+            "redirect_to": url_for('admin_view_list_entries_page', owner_user_id=parent_list_owner_id, list_id=parent_list_id)
+        })
 
     except Exception as e:
-        db.session.rollback()  # Hoàn tác nếu có lỗi.
-        flash(f"An error occurred while deleting item: {str(e)}", "danger_admin")
-        print(f"Lỗi khi Admin ({admin_user_info.get('email')}) xóa entry ID {entry_id}: {e}")  # Log lỗi.
+        db.session.rollback()
+        admin_email_for_log = admin_user_info.get('email') if admin_user_info else "Unknown Admin"
+        print(f"ERROR: Admin ({admin_email_for_log}) xóa entry ID {entry_id} failed: {e}")
+        import traceback
+        traceback.print_exc()
 
-    # 5. Redirect Admin trở lại trang xem chi tiết danh sách từ vựng của người dùng đó.
-    #    Sử dụng route mà Admin dùng để xem chi tiết list của user.
-    return redirect(url_for('admin_view_list_entries_page', owner_user_id=parent_list_owner_id, list_id=parent_list_id))
+        # Với AJAX, trả về JSON lỗi
+        return jsonify({"success": False, "message": f"Server error when deleting entry: {str(e)}"}), 500
 
 
 class GenerateWordsForm(FlaskForm):
